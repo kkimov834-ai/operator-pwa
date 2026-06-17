@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNavBarContext } from "./NavBarContext";
-import { AiFillSetting } from "react-icons/ai";
-
+import { AiFillSetting, AiOutlineLogout } from "react-icons/ai";
+import { Button } from "antd-mobile";
+import { Moon, Sun } from "lucide-react";
 export default function NavBar({ placeholder = "Axtar" }) {
   const {
     title,
@@ -12,8 +13,7 @@ export default function NavBar({ placeholder = "Axtar" }) {
     query,
     setQuery,
     toggleTheme,
-    colorTheme,
-    setColorTheme,
+    isDark,
     themeStyles,
   } = useNavBarContext();
   const [showSearch, setShowSearch] = useState(false);
@@ -25,6 +25,24 @@ export default function NavBar({ placeholder = "Axtar" }) {
     if (!showSearch && setQuery) setQuery("");
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    window.location.href = "/";
+  };
+
+  const iconButtonStyle = {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.08)",
+    color: themeStyles?.navText || "inherit",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 0,
+  };
+
   return (
     <div
       style={{
@@ -32,8 +50,11 @@ export default function NavBar({ placeholder = "Axtar" }) {
         alignItems: "center",
         justifyContent: "space-between",
         padding: 12,
-        background: themeStyles?.pageBg || "transparent",
-        color: themeStyles?.cardText || "inherit",
+        background: themeStyles?.navBg || "transparent",
+        color: themeStyles?.navText || "inherit",
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
       }}
     >
       <div style={{ display: "flex", alignItems: "center", minWidth: 44 }}>
@@ -42,7 +63,7 @@ export default function NavBar({ placeholder = "Axtar" }) {
             onClick={() => {
               // navigate back to accounts list
               try {
-                navigate("/accounts");
+                navigate("/");
               } catch (e) {
                 // no-op
               }
@@ -51,9 +72,7 @@ export default function NavBar({ placeholder = "Axtar" }) {
             }}
             aria-label="Geri"
             style={{
-              background: "transparent",
-              border: "none",
-              padding: 6,
+              ...iconButtonStyle,
               marginRight: 6,
             }}
           >
@@ -79,7 +98,7 @@ export default function NavBar({ placeholder = "Axtar" }) {
             style={{
               fontSize: 18,
               fontWeight: 600,
-              color: themeStyles?.cardText || "inherit",
+              color: themeStyles?.navText || "inherit",
             }}
           >
             {title || "App"}
@@ -94,9 +113,10 @@ export default function NavBar({ placeholder = "Axtar" }) {
               width: "90%",
               padding: 8,
               borderRadius: 8,
-              border: "1px solid rgba(0,0,0,0.08)",
+              border: `1px solid ${themeStyles?.border || "rgba(0,0,0,0.08)"}`,
               background: themeStyles?.inputBg || "#fff",
               color: themeStyles?.inputText || "#000",
+              outline: "none",
             }}
           />
         )}
@@ -113,63 +133,23 @@ export default function NavBar({ placeholder = "Axtar" }) {
       >
         <button
           onClick={toggleTheme}
-          aria-label="Toggle theme"
-          style={{
-            background: "transparent",
-            border: "none",
-            padding: 6,
-            color: themeStyles?.cardText || "inherit",
-          }}
+          aria-label={isDark ? "Light mode" : "Dark mode"}
+          title={isDark ? "Light mode" : "Dark mode"}
+          style={iconButtonStyle}
         >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <circle cx="12" cy="12" r="4" />
-          </svg>
-        </button>
-
-        <button
-          onClick={onSearchIcon}
-          aria-label="Search"
-          style={{
-            background: "transparent",
-            border: "none",
-            padding: 6,
-            color: themeStyles?.cardText || "inherit",
-          }}
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
+          {/* İkonlar artıq çox təmiz şəkildə çağırılır */}
+          {isDark ? <Moon size={18} /> : <Sun size={18} />}
         </button>
 
         <div style={{ position: "relative" }}>
-          {showSettings && (
-            <div
-              style={{
-                position: "absolute",
-                right: 0,
-                top: 36,
-                padding: 8,
-                borderRadius: 8,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-                zIndex: 200,
-              }}
-            ></div>
-          )}
+          <button
+            onClick={handleLogout}
+            aria-label="Çıxış"
+            title="Çıxış"
+            style={iconButtonStyle}
+          >
+            <AiOutlineLogout />
+          </button>
         </div>
       </div>
     </div>

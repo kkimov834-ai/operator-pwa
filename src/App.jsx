@@ -6,14 +6,14 @@ import useAuthCheck from "./hooks/useAuthCheck";
 
 import { NavBarProvider } from "./components/NavBarContext";
 import api from "./api";
-import { useEffect } from "react";
+import { use, useEffect } from "react";
 
 export default function App() {
   const { token, isLoading } = useAuthCheck();
   if (isLoading || !token) {
     return <div className="loader">SSO-ya yönləndirilir...</div>;
   }
-
+  
   return (
     <NavBarProvider>
       <PWAModal />

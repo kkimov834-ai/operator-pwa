@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { getCurrentUser } from "../../services/auth.services";
 import { Card } from "antd-mobile";
+import { useNavBarContext } from "../../components/NavBarContext";
 
 const ProfilePage = () => {
   const [authUser, setAuthUser] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const { setTitle, setShowBack, themeStyles, isDark } = useNavBarContext();
+
+  useEffect(() => {
+    setTitle("Hesabim");
+    setShowBack(false);
+    return () => setTitle("");
+  }, [setTitle, setShowBack]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -16,30 +25,78 @@ const ProfilePage = () => {
         setError(null);
       } catch (err) {
         console.error("Error fetching user:", err);
-        setError("İstifadəçi məlumatları yüklənərkən xəta baş verdi");
+        setError("Istifadeci melumatlari yuklenerken xeta bash verdi");
         setAuthUser({});
       } finally {
         setLoading(false);
       }
     };
-
     fetchUser();
   }, []);
 
   return (
-    <div className="p-6 mx-auto space-y-6">
+    <div
+      style={{
+        minHeight: "100vh",
+        padding: 12,
+        paddingBottom: 84,
+        background: themeStyles?.pageBg,
+        color: themeStyles?.text,
+      }}
+    >
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div
+          style={{
+            padding: 12,
+            borderRadius: 8,
+            background: isDark ? "rgba(127, 29, 29, 0.28)" : "#fef2f2",
+            border: "1px solid rgba(220, 38, 38, 0.35)",
+            color: isDark ? "#fecaca" : "#b91c1c",
+          }}
+        >
           {error}
         </div>
       )}
 
       {loading ? (
-        <div>salam</div>
+        <div style={{ color: themeStyles?.mutedText || "#9CA3AF" }}>
+          SSO gozlenilir...
+        </div>
       ) : (
-        <Card background="white" className="p-4">
-          <strong>İstifadəçi:</strong> {authUser?.identifier || "N/A"}
-          <strong>Rol:</strong> {authUser?.role || "N/A"}
+        <Card
+          style={{
+            background: themeStyles?.cardBg,
+            border: `1px solid ${themeStyles?.border || "transparent"}`,
+            borderRadius: 8,
+            padding: "16px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+            marginTop: "20px",
+          }}
+        >
+          <div style={{ color: themeStyles?.cardText }}>
+            <strong
+              style={{
+                color: themeStyles?.cardTextSecondary || "#9CA3AF",
+                fontWeight: 500,
+              }}
+            >
+              Istifadeci:
+            </strong>{" "}
+            {authUser?.identifier || "N/A"}
+          </div>
+          <div style={{ color: themeStyles?.cardText }}>
+            <strong
+              style={{
+                color: themeStyles?.cardTextSecondary || "#9CA3AF",
+                fontWeight: 500,
+              }}
+            >
+              Rol:
+            </strong>{" "}
+            {authUser?.role || "N/A"}
+          </div>
         </Card>
       )}
     </div>

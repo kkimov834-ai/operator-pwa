@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, Popup, Button } from "antd-mobile";
 import NavBar from "../../components/NavBar";
+import { useNavBarContext } from "../../components/NavBarContext";
 
 export default function AccountPopup({
   selected,
@@ -13,6 +14,7 @@ export default function AccountPopup({
   removeModule,
 }) {
   if (!selected) return null;
+  const { themeStyles } = useNavBarContext();
 
   return (
     <Popup
@@ -27,7 +29,7 @@ export default function AccountPopup({
         borderTopLeftRadius: 0,
         borderTopRightRadius: 0,
         overflow: "hidden",
-        background: themeStyles.popupBg,
+        background: themeStyles?.popupBg,
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -74,7 +76,15 @@ export default function AccountPopup({
             </div>
           ) : (
             modulesFor.map((mod) => (
-              <Card key={mod.id} title={mod.name} style={{ marginBottom: 12 }}>
+              <Card
+                key={mod.id}
+                title={mod.name}
+                style={{
+                  marginBottom: 12,
+                  background: themeStyles?.cardBg,
+                  color: themeStyles?.cardText,
+                }}
+              >
                 <div
                   style={{ display: "flex", flexDirection: "column", gap: 8 }}
                 >
