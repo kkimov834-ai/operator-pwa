@@ -1,7 +1,8 @@
 import axios from "axios";
+import { appConfig } from "../config/environments";
 
 const api = axios.create({
-    baseURL: "https://api.akul.az/devgate/", // Backend URL
+    baseURL: appConfig.apiBaseUrl, // Backend URL
     headers: {
         "Content-Type": "application/json",
     },

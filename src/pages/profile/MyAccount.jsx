@@ -11,7 +11,7 @@ const ProfilePage = () => {
   const { setTitle, setShowBack, themeStyles, isDark } = useNavBarContext();
 
   useEffect(() => {
-    setTitle("Hesabim");
+    setTitle("Hesabım");
     setShowBack(false);
     return () => setTitle("");
   }, [setTitle, setShowBack]);

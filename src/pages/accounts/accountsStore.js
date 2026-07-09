@@ -47,8 +47,13 @@ export function addTariffs(accountId, modId, tariffs) {
   const mods = prev[accountId] || [];
   const updated = mods.map((m) => {
     if (m.id !== modId) return m;
-    const newServices = tariffs.map((t) => ({ id: `s_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, name: t, price: "0 AZN" }));
-    return { ...m, services: [...m.services, ...newServices] };
+    const newServices = tariffs.map((t) => ({
+      id: t.id || `s_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+      name: t.name || t.service || t.module || String(t),
+      price: String(t.price || "0"),
+      quantity: Number(t.quantity || 1)
+    }));
+    return { ...m, services: [...(m.services || []), ...newServices] };
   });
   prev[accountId] = updated;
   save(prev);
@@ -58,7 +63,15 @@ export function addTariffs(accountId, modId, tariffs) {
 export function removeService(accountId, modId, serviceId) {
   const prev = load();
   const mods = prev[accountId] || [];
-  const updated = mods.map((m) => (m.id === modId ? { ...m, services: m.services.filter((s) => s.id !== serviceId) } : m));
+  const updated = mods.map((m) => {
+    if (m.id !== modId) return m;
+    return {
+      ...m,
+      services: (m.services || []).filter(
+        (s) => s.id !== serviceId && s._id !== serviceId && s.name !== serviceId
+      )
+    };
+  });
   prev[accountId] = updated;
   save(prev);
   return updated;

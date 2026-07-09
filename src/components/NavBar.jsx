@@ -1,29 +1,23 @@
-import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNavBarContext } from "./NavBarContext";
-import { AiFillSetting, AiOutlineLogout } from "react-icons/ai";
-import { Button } from "antd-mobile";
+import { AiOutlineLogout } from "react-icons/ai";
+import { FiSearch } from "react-icons/fi";
 import { Moon, Sun } from "lucide-react";
+
 export default function NavBar({ placeholder = "Axtar" }) {
   const {
     title,
-    setTitle,
     showBack,
-    setShowBack,
     query,
     setQuery,
+    showSearch,
+    setShowSearch,
     toggleTheme,
     isDark,
     themeStyles,
+    toggleSearch,
   } = useNavBarContext();
-  const [showSearch, setShowSearch] = useState(false);
   const navigate = useNavigate();
-  const [showSettings, setShowSettings] = useState(false);
-
-  const onSearchIcon = () => {
-    setShowSearch((s) => !s);
-    if (!showSearch && setQuery) setQuery("");
-  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -34,13 +28,14 @@ export default function NavBar({ placeholder = "Axtar" }) {
     width: 34,
     height: 34,
     borderRadius: 8,
-    border: "1px solid rgba(255,255,255,0.14)",
-    background: "rgba(255,255,255,0.08)",
+    border: "1px solid var(--border)",
+    background: "var(--tab-passive-bg)", // Düymə arxa fonu qlobal dəyişənə bağlandı
     color: themeStyles?.navText || "inherit",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     padding: 0,
+    cursor: "pointer",
   };
 
   return (
@@ -49,7 +44,10 @@ export default function NavBar({ placeholder = "Axtar" }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: 12,
+        padding: "12px",
+        paddingTop: "max(12px, env(safe-area-inset-top))",
+        paddingLeft: "max(12px, env(safe-area-inset-left))",
+        paddingRight: "max(12px, env(safe-area-inset-right))",
         background: themeStyles?.navBg || "transparent",
         color: themeStyles?.navText || "inherit",
         position: "sticky",
@@ -57,19 +55,11 @@ export default function NavBar({ placeholder = "Axtar" }) {
         zIndex: 50,
       }}
     >
+      {/* Sol tərəf: Geri düyməsi */}
       <div style={{ display: "flex", alignItems: "center", minWidth: 44 }}>
         {showBack ? (
           <button
-            onClick={() => {
-              // navigate back to accounts list
-              try {
-                navigate("/");
-              } catch (e) {
-                // no-op
-              }
-              setShowBack(false);
-              setTitle("");
-            }}
+            onClick={() => navigate(-1)} // <--- Avtomatik bir addım geriyə qayıdır
             aria-label="Geri"
             style={{
               ...iconButtonStyle,
@@ -92,6 +82,7 @@ export default function NavBar({ placeholder = "Axtar" }) {
         ) : null}
       </div>
 
+      {/* Orta tərəf: Başlıq və ya Axtarış */}
       <div style={{ flex: 1, textAlign: "center" }}>
         {!showSearch ? (
           <div
@@ -122,6 +113,7 @@ export default function NavBar({ placeholder = "Axtar" }) {
         )}
       </div>
 
+      {/* Sağ tərəf: Mövzu və Çıxış düymələri */}
       <div
         style={{
           display: "flex",
@@ -132,12 +124,20 @@ export default function NavBar({ placeholder = "Axtar" }) {
         }}
       >
         <button
+          onClick={toggleSearch}
+          aria-label="Axtarış"
+          title="Axtarış"
+          style={iconButtonStyle}
+        >
+          <FiSearch size={18} />
+        </button>
+
+        <button
           onClick={toggleTheme}
           aria-label={isDark ? "Light mode" : "Dark mode"}
           title={isDark ? "Light mode" : "Dark mode"}
           style={iconButtonStyle}
         >
-          {/* İkonlar artıq çox təmiz şəkildə çağırılır */}
           {isDark ? <Moon size={18} /> : <Sun size={18} />}
         </button>
 

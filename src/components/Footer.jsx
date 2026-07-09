@@ -1,12 +1,18 @@
 import React from "react";
-import { CapsuleTabs } from "antd-mobile";
+import { CapsuleTabs, TabBar } from "antd-mobile";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useNavBarContext } from "./NavBarContext";
+import { FaTasks, FaUser } from "react-icons/fa";
+import { CgProfile } from "react-icons/cg";
+import { MdOutlineTerminal } from "react-icons/md";
+import { LuSettings } from "react-icons/lu";
 
 const items = [
-  { key: "/", title: "Hesablar" },
-  { key: "/tasks", title: "Tapşırıqlar" },
-  { key: "/profile", title: "Hesabım" },
+  { key: "/", title: "Hesablar", icon: <FaUser /> },
+  { key: "/tasks", title: "Tapşırıqlar", icon: <FaTasks /> },
+  { key: "/task-environments", title: "Mühitlər", icon: <LuSettings /> },
+  { key: "/profile", title: "Hesabım", icon: <CgProfile /> },
+  { key: "/terminal", title: "Terminal", icon: <MdOutlineTerminal /> },
 ];
 
 const Footer = () => {
@@ -29,7 +35,10 @@ const Footer = () => {
         left: 0,
         right: 0,
         bottom: 0,
-        height: 64,
+        minHeight: 64,
+        paddingBottom: "env(safe-area-inset-bottom)",
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
         borderRadius: 0,
         background: themeStyles?.navBg || "#161424",
         zIndex: 40,
@@ -58,7 +67,7 @@ const Footer = () => {
       `}</style>
 
       <div style={{ width: "100%", padding: "0 10px" }}>
-        <CapsuleTabs
+        <TabBar
           activeKey={activeKey}
           onChange={(key) => {
             navigate(key);
@@ -77,9 +86,9 @@ const Footer = () => {
           }}
         >
           {items.map((it) => (
-            <CapsuleTabs.Tab title={it.title} key={it.key} />
+            <TabBar.Item title={it.title} icon={it.icon} key={it.key} />
           ))}
-        </CapsuleTabs>
+        </TabBar>
       </div>
     </div>
   );

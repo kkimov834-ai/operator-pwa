@@ -21,8 +21,11 @@ export function useAccountsTheme(initial = "light") {
 
   const themeStyles = useMemo(
     () => ({
-      navBg: "#06264d",
-      navText: "#ffffff",
+      navBg: isDark ? "#0f172a" : "#ffffff",
+      navText: isDark ? "#f8fafc" : "#111827",
+      navButtonBg: isDark ? "#1e293b" : "#f3f4f6",
+      navButtonText: isDark ? "#e2e8f0" : "#111827",
+      navButtonBorder: isDark ? "rgba(148, 163, 184, 0.2)" : "rgba(17, 24, 39, 0.08)",
 
       pageBg: isDark ? "#0b1120" : "#f6f7fb",
       text: isDark ? "#f8fafc" : "#111827",

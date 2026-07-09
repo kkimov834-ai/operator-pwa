@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Button, Selector, Card, Toast } from "antd-mobile";
-import { MODULE_OPTIONS, TARIFF_OPTIONS } from "./accountsData";
+import React, { useEffect, useState } from "react";
+import { Button, Toast } from "antd-mobile";
 import {
   addModules,
   removeModule,
@@ -8,92 +7,225 @@ import {
   removeService,
 } from "./accountsStore";
 import { userModules } from "../../services/userModules.secvice";
+import { allModules } from "../../services/allModules.service";
+import ModuleCard from "./ModuleCard";
+import ModulePickerModal from "./ModulePickerModal";
+import TariffAddModal from "./TariffAddModal";
+
+const makeService = (service) => {
+  if (typeof service === "string") {
+    return {
+      id: service,
+      name: service,
+      price: "0 AZN",
+      catalogKey: service,
+      sourceKey: service,
+    };
+  }
+  const name =
+    service?.name ?? service?.service ?? service?.module ?? service?.label;
+  if (!name) return null;
+  return {
+    ...service,
+    id: service?.id ?? service?._id ?? name,
+    name,
+    price: service?.price ?? "0 AZN",
+    catalogKey: service?.catalogKey ?? service?.id ?? service?._id ?? name,
+    sourceKey: service?.sourceKey ?? service?.id ?? service?._id ?? name,
+  };
+};
+
+const makeModule = (item) => {
+  if (typeof item === "string") {
+    return {
+      label: item,
+      value: item,
+      services: [],
+      raw: { module: item, services: [] },
+    };
+  }
+  const label =
+    item?.module ??
+    item?.name ??
+    item?.label ??
+    item?.value ??
+    item?.id ??
+    item?._id;
+  if (!label) return null;
+  const value = String(
+    item?.id ?? item?._id ?? item?.module ?? item?.name ?? label,
+  );
+  const services = (item?.services ?? item?.serviceList ?? item?.items ?? [])
+    .map(makeService)
+    .filter(Boolean);
+  return {
+    label,
+    value,
+    services,
+    raw: { ...item, module: item?.module ?? item?.name ?? label, services },
+  };
+};
+
+const moduleKey = (module) =>
+  typeof module === "string"
+    ? module
+    : String(
+        module?.catalogKey ??
+          module?.sourceKey ??
+          module?.id ??
+          module?._id ??
+          module?.module ??
+          module?.name ??
+          module?.label ??
+          "",
+      );
+
+const serviceKey = (service) =>
+  typeof service === "string"
+    ? service
+    : String(
+        service?.catalogKey ??
+          service?.sourceKey ??
+          service?.id ??
+          service?._id ??
+          service?.name ??
+          "",
+      );
 
 export default function ModulesManager({ accountId }) {
   const [modules, setModules] = useState([]);
+  const [catalog, setCatalog] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const [addingModules, setAddingModules] = useState(false);
-  const [selectedModule, setSelectedModule] = useState(null); // Massiv yox, tək dəyər
-  const [addingTariffsFor, setAddingTariffsFor] = useState(null);
-  const [selectedTariff, setSelectedTariff] = useState(null); // Massiv yox, tək dəyər
-  const [collapsedIds, setCollapsedIds] = useState([]);
-
-  const fetchUserModules = async () => {
-    if (!accountId) return;
-    try {
-      setLoading(true);
-      const res = await userModules(accountId);
-      if (res && res.status === "success") {
-        setModules(res.data || []);
-      } else if (Array.isArray(res)) {
-        setModules(res);
-      } else if (res?.data) {
-        setModules(res.data);
-      }
-    } catch (error) {
-      console.error("Modullar yüklənərkən xəta yarandı:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [showModules, setShowModules] = useState(false);
+  const [selectedModule, setSelectedModule] = useState(null);
+  const [tariffModuleId, setTariffModuleId] = useState(null);
+  const [selectedTariff, setSelectedTariff] = useState(null);
+  const [collapsed, setCollapsed] = useState([]);
 
   useEffect(() => {
-    fetchUserModules();
+    const load = async () => {
+      if (!accountId) return;
+      setLoading(true);
+      try {
+        const res = await userModules(accountId);
+        const items = Array.isArray(res)
+          ? res
+          : Array.isArray(res?.data)
+            ? res.data
+            : Array.isArray(res?.modules)
+              ? res.modules
+              : [];
+        // Ensure every module has a guaranteed `id`
+        const normalized = items.map((m, idx) => ({
+          ...m,
+          id: m.id || m._id || m.module || m.name || `mod_${idx}`,
+        }));
+        setModules(normalized);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, [accountId]);
 
-  const openAddModules = () => {
-    setSelectedModule(null); // Sıfırlayırıq
-    setAddingModules(true);
-  };
+  useEffect(() => {
+    const load = async () => {
+      setCatalogLoading(true);
+      try {
+        const res = await allModules();
+        const items = Array.isArray(res)
+          ? res
+          : Array.isArray(res?.data)
+            ? res.data
+            : Array.isArray(res?.modules)
+              ? res.modules
+              : [];
+        setCatalog(items.map(makeModule).filter(Boolean));
+      } finally {
+        setCatalogLoading(false);
+      }
+    };
+    load();
+  }, []);
 
-  const confirmAddModules = () => {
-    if (!selectedModule) return setAddingModules(false);
-    // accountsStore funksiyası massiv gözləyirsə, tək seçimi massiv daxilində göndəririk
-    const updated = addModules(accountId, [selectedModule]);
-    setModules(updated);
-    setAddingModules(false);
-    Toast.show({ content: "Modul uğurla əlavə edildi" });
-  };
+  const activeKeys = new Set(
+    modules.flatMap((module) =>
+      [moduleKey(module), module?.module, module?.name, module?.id, module?._id]
+        .filter(Boolean)
+        .map(String),
+    ),
+  );
+  const activeModule = modules.find(
+    (module) =>
+      module.id === tariffModuleId ||
+      module._id === tariffModuleId ||
+      String(module.id) === String(tariffModuleId),
+  );
+  const currentCatalog = activeModule
+    ? catalog.find(
+        (item) =>
+          item.value === moduleKey(activeModule) ||
+          item.label === moduleKey(activeModule) ||
+          item.label === (activeModule.module || activeModule.name),
+      )
+    : null;
+  const currentServices =
+    currentCatalog?.services || activeModule?.catalogServices || [];
+  const activeServiceKeys = new Set(
+    (activeModule?.services || []).map(serviceKey),
+  );
+  const moduleOptions = catalog.filter(
+    (item) => !activeKeys.has(item.value) && !activeKeys.has(item.label),
+  );
 
-  const handleRemoveModule = (modId) => {
-    const updated = removeModule(accountId, modId);
-    setModules(updated);
-    Toast.show({ content: "Modul silindi" });
-  };
+  // Collect all services from catalog as fallback
+  const allCatalogServices = catalog.flatMap((item) => item.services || []);
+  const tariffServices = currentServices.length > 0
+    ? currentServices.filter((service) => !activeServiceKeys.has(serviceKey(service)))
+    : allCatalogServices;
 
-  const openAddTariffs = (modId) => {
-    setAddingTariffsFor(modId);
-    setSelectedTariff(null); // Sıfırlayırıq
-  };
-
-  const confirmAddTariffs = () => {
-    if (!addingTariffsFor || !selectedTariff) return setAddingTariffsFor(null);
-    // accountsStore funksiyası massiv gözləyirsə, tək seçimi massiv daxilində göndəririk
-    const updated = addTariffs(accountId, addingTariffsFor, [selectedTariff]);
-    setModules(updated);
-    setAddingTariffsFor(null);
-  };
-
-  const handleRemoveService = (modId, serviceId) => {
-    const updated = removeService(accountId, modId, serviceId);
-    setModules(updated);
-  };
-
-  const toggleCollapse = (id) => {
-    setCollapsedIds((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
+  const addModule = () => {
+    if (!selectedModule) return;
+    const item = catalog.find(
+      (entry) =>
+        entry.value === selectedModule || entry.label === selectedModule,
     );
+    if (!item) return;
+    setModules(
+      addModules(accountId, [
+        {
+          ...item.raw,
+          module: item.label,
+          name: item.label,
+          catalogKey: item.value,
+          sourceKey: item.value,
+          services: item.services,
+        },
+      ]),
+    );
+    setSelectedModule(null);
+    setShowModules(false);
+    Toast.show({ content: "Modul əlavə edildi" });
   };
 
-  if (loading) {
+  const addService = (tariffData) => {
+    if (!tariffModuleId || !tariffData) return;
+    setModules(
+      addTariffs(accountId, tariffModuleId, [tariffData]),
+    );
+    setTariffModuleId(null);
+    Toast.show({ content: "Tarif əlavə edildi" });
+  };
+
+  if (loading || catalogLoading) {
     return (
       <div
         style={{
-          padding: "12px",
+          padding: 12,
           textAlign: "center",
           color: "var(--muted-text)",
-          fontSize: "13px",
+          fontSize: 13,
         }}
       >
         Modullar yüklənir...
@@ -104,26 +236,16 @@ export default function ModulesManager({ accountId }) {
   return (
     <div style={{ paddingBottom: 20 }}>
       <style>{`
-        .adm-selector-item {
-          background-color: var(--tab-passive-bg) !important;
-          color: var(--tab-passive-text) !important;
-          border: 1px solid var(--border) !important;
-        }
-        .adm-selector-item-active {
-          background-color: var(--tab-active-bg) !important;
-          color: var(--tab-active-text) !important;
-          border-color: var(--tab-active-bg) !important;
-        }
+        .adm-selector-item{background-color:var(--tab-passive-bg)!important;color:var(--tab-passive-text)!important;border:1px solid var(--border)!important;}
+        .adm-selector-item-active{background-color:var(--tab-active-bg)!important;color:var(--tab-active-text)!important;border-color:var(--tab-active-bg)!important;}
       `}</style>
 
-      {/* Başlıq */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: 16,
-          marginTop: 8,
+          margin: "8px 0 16px",
         }}
       >
         <h3
@@ -131,346 +253,92 @@ export default function ModulesManager({ accountId }) {
             margin: 0,
             color: "var(--app-text)",
             fontWeight: 600,
-            fontSize: "16px",
+            fontSize: 16,
           }}
         >
           Modullar ({modules.length})
         </h3>
         <Button
           size="small"
-          onClick={openAddModules}
+          onClick={() => setShowModules(true)}
           style={{
             background: "var(--tab-active-bg)",
             color: "var(--tab-active-text)",
             border: "none",
-            borderRadius: "6px",
-            fontWeight: "500",
+            borderRadius: 6,
+            fontWeight: 500,
           }}
         >
           + Modul əlavə et
         </Button>
       </div>
 
-      {/* Siyahı */}
       {modules.length === 0 ? (
         <div
           style={{
             padding: "24px 12px",
             color: "var(--muted-text)",
             textAlign: "center",
-            fontSize: "14px",
+            fontSize: 14,
             background: "var(--surface-bg)",
-            borderRadius: "8px",
+            borderRadius: 8,
           }}
         >
           Bu istifadəçiyə aid heç bir modul tapılmadı.
         </div>
       ) : (
         modules.map((mod) => (
-          <Card
-            key={mod.id || mod.name}
-            style={{
-              marginBottom: 12,
-              background: "var(--card-bg)",
-              borderRadius: "12px",
-              border: "1px solid var(--border)",
+          <ModuleCard
+            key={mod.id}
+            module={mod}
+            collapsed={collapsed.includes(mod.id)}
+            onToggleCollapse={(id) =>
+              setCollapsed((prev) =>
+                prev.includes(id)
+                  ? prev.filter((item) => item !== id)
+                  : [...prev, id],
+              )
+            }
+            onRemove={(moduleId, serviceId) =>
+              serviceId
+                ? setModules(removeService(accountId, moduleId, serviceId))
+                : setModules(removeModule(accountId, moduleId))
+            }
+            onAddTariff={(id) => {
+              console.log("onAddTariff called with id:", id, "type:", typeof id);
+              setTariffModuleId(id);
+              setSelectedTariff(null);
             }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <Button
-                  size="mini"
-                  style={{
-                    background: "#D32F2F",
-                    border: "none",
-                    color: "#FFFFFF",
-                    borderRadius: "6px",
-                  }}
-                  onClick={() => handleRemoveModule(mod.id)}
-                >
-                  Sil
-                </Button>
-                <div
-                  onClick={() => toggleCollapse(mod.id || mod.name)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      color: "var(--card-text)",
-                      fontSize: 15,
-                    }}
-                  >
-                    {mod.name}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: "var(--card-text-secondary)",
-                      marginTop: 2,
-                    }}
-                  >
-                    {mod.price ? `${mod.price} AZN` : "Pulsuz"}
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <Button
-                  size="small"
-                  onClick={() => openAddTariffs(mod.id)}
-                  style={{
-                    background: "var(--tab-passive-bg)",
-                    color: "var(--tab-passive-text)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "6px",
-                  }}
-                >
-                  + Tarif
-                </Button>
-                <Button
-                  size="small"
-                  style={{
-                    background: "transparent",
-                    color: "var(--muted-text)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "6px",
-                  }}
-                  onClick={() => toggleCollapse(mod.id || mod.name)}
-                >
-                  {collapsedIds.includes(mod.id || mod.name) ? "Aç" : "Gizlət"}
-                </Button>
-              </div>
-            </div>
-
-            {/* Daxili Servislər */}
-            {!collapsedIds.includes(mod.id || mod.name) &&
-              mod.services &&
-              mod.services.length > 0 && (
-                <div
-                  style={{
-                    marginTop: 12,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                    borderTop: "1px solid var(--border)",
-                    paddingTop: 12,
-                  }}
-                >
-                  {mod.services.map((s) => (
-                    <div
-                      key={s.id}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        padding: "10px 12px",
-                        borderRadius: "8px",
-                        background: "var(--surface-bg)",
-                        border: "1px solid var(--border)",
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{
-                            fontWeight: 500,
-                            color: "var(--app-text)",
-                            fontSize: 14,
-                          }}
-                        >
-                          {s.name}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: "var(--muted-text)",
-                            marginTop: 2,
-                          }}
-                        >
-                          {s.price}
-                        </div>
-                      </div>
-                      <Button
-                        size="mini"
-                        style={{
-                          background: "#D32F2F",
-                          border: "none",
-                          color: "#FFFFFF",
-                          borderRadius: "6px",
-                        }}
-                        onClick={() => handleRemoveService(mod.id, s.id)}
-                      >
-                        Sil
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-          </Card>
+          />
         ))
       )}
 
-      {/* MODAL POPUP: Modul Seçin (TƏKLİ SEÇİM) */}
-      {addingModules && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 16,
-            zIndex: 100,
-          }}
-        >
-          <div
-            style={{
-              padding: 20,
-              borderRadius: "16px",
-              background: "var(--card-bg)",
-              border: "1px solid var(--border)",
-              width: "100%",
-              maxWidth: 520,
-            }}
-          >
-            <h4
-              style={{
-                margin: "0 0 16px 0",
-                color: "var(--card-text)",
-                fontSize: 16,
-                fontWeight: 600,
-              }}
-            >
-              Modul seçin
-            </h4>
-            <div style={{ marginBottom: 20 }}>
-              <Selector
-                options={MODULE_OPTIONS.filter(
-                  (o) => !modules.some((m) => m.name === o.value),
-                )}
-                value={selectedModule ? [selectedModule] : []} // Ant-Mobile təkli seçimdə də massiv kimi göstərilməni sevir
-                onChange={(v) => setSelectedModule(v[0] || null)} // İlk elementi götürürük (Təkli seçim)
-              />
-            </div>
-            <div style={{ display: "flex", gap: 12 }}>
-              <Button
-                block
-                onClick={() => setAddingModules(false)}
-                style={{
-                  background: "transparent",
-                  color: "var(--muted-text)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "8px",
-                }}
-              >
-                İmtina
-              </Button>
-              <Button
-                block
-                onClick={confirmAddModules}
-                disabled={!selectedModule}
-                style={{
-                  background: !selectedModule
-                    ? "var(--border)"
-                    : "var(--tab-active-bg)",
-                  color: !selectedModule
-                    ? "var(--muted-text)"
-                    : "var(--tab-active-text)",
-                  border: "none",
-                  borderRadius: "8px",
-                  fontWeight: "500",
-                }}
-              >
-                Əlavə et
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ModulePickerModal
+        open={showModules}
+        title="Modul seçin"
+        emptyText="Seçim üçün modul qalmayıb"
+        options={moduleOptions.map((item) => ({
+          label: item.label,
+          value: item.value,
+        }))}
+        value={selectedModule}
+        onChange={setSelectedModule}
+        onClose={() => {
+          setSelectedModule(null);
+          setShowModules(false);
+        }}
+        onConfirm={addModule}
+      />
 
-      {/* MODAL POPUP: Tarif Seçin (TƏKLİ SEÇİM) */}
-      {addingTariffsFor && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 16,
-            zIndex: 100,
-          }}
-        >
-          <div
-            style={{
-              padding: 20,
-              borderRadius: "16px",
-              background: "var(--card-bg)",
-              border: "1px solid var(--border)",
-              width: "100%",
-              maxWidth: 520,
-            }}
-          >
-            <h4
-              style={{
-                margin: "0 0 16px 0",
-                color: "var(--card-text)",
-                fontSize: 16,
-                fontWeight: 600,
-              }}
-            >
-              Tarif seçin
-            </h4>
-            <div style={{ marginBottom: 20 }}>
-              <Selector
-                options={TARIFF_OPTIONS}
-                value={selectedTariff ? [selectedTariff] : []}
-                onChange={(v) => setSelectedTariff(v[0] || null)} // İlk elementi götürürük (Təkli seçim)
-              />
-            </div>
-            <div style={{ display: "flex", gap: 12 }}>
-              <Button
-                block
-                onClick={() => setAddingTariffsFor(null)}
-                style={{
-                  background: "transparent",
-                  color: "var(--muted-text)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "8px",
-                }}
-              >
-                İmtina
-              </Button>
-              <Button
-                block
-                onClick={confirmAddTariffs}
-                disabled={!selectedTariff}
-                style={{
-                  background: !selectedTariff
-                    ? "var(--border)"
-                    : "var(--tab-active-bg)",
-                  color: !selectedTariff
-                    ? "var(--muted-text)"
-                    : "var(--tab-active-text)",
-                  border: "none",
-                  borderRadius: "8px",
-                  fontWeight: "500",
-                }}
-              >
-                Əlavə et
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <TariffAddModal
+        open={Boolean(tariffModuleId)}
+        title="Tarif əlavə et"
+        services={tariffServices}
+        onClose={() => {
+          setTariffModuleId(null);
+        }}
+        onConfirm={addService}
+      />
     </div>
   );
 }
