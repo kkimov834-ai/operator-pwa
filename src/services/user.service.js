@@ -11,3 +11,23 @@ export const getUserAccounts = async (acc) => {
         throw error;
     }
 }
+
+export const getPartners = async () => {
+    try {
+        const response = await api.post("/user/partners");
+        return response.data;
+    } catch (error) {
+        console.error("Failed to fetch partners", error);
+        throw error;
+    }
+}
+
+export const updateAccount = async (payload) => {
+    try {
+        const response = await api.post("/user/updateAccount", payload);
+        return response.data;
+    } catch (error) {
+        console.error("Failed to update account", error);
+        throw error;
+    }
+}

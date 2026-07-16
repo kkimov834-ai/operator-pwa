@@ -119,8 +119,9 @@ export default function AccountsPage() {
               ? "Yazılmayıb"
               : account.email;
             const registerMoment =
-              account.registremoment || account.registermoment || "-";
+              account.registermoment;
             const details = [
+              { label: "Ad Soyad", value: account.name + " " + account.lastname },
               { label: "Email", value: emailText },
               { label: "Son Əlaqə", value: account.last_contact || "-" },
               { label: "Partner", value: account.partner_name || "-" },
@@ -173,7 +174,7 @@ export default function AccountsPage() {
                             paddingRight: 12,
                           }}
                         >
-                          {account.name || "-"} {account.lastname || account.lastName || account.surname || ""}
+                          {account.account}
                         </div>
                         <div
                           style={{

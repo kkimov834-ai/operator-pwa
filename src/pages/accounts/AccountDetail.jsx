@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Space } from "antd-mobile";
+import AccountFinanceCard from "./AccountFinanceCard";
 import ModulesManager from "./ModulesManager";
 import AccountHistoryCard from "./AccountHistoryCard";
 import AccountUserInfoCard from "./AccountUserInfoCard";
 import AccountProfileUsersCard from "./AccountProfileUsersCard";
+import UpdateAccountCard from "./UpdateAccountCard";
 import { useNavBarContext } from "../../components/NavBarContext";
 import { getUserInfo } from "../../services/userInfo.service";
 import { getUserAccounts } from "../../services/user.service";
@@ -113,6 +115,11 @@ export default function AccountDetail() {
     >
       <Space direction="vertical" block style={{ "--gap": "12px" }}>
         <AccountUserInfoCard account={acc} themeStyles={themeStyles} />
+
+        <AccountFinanceCard accountId={acc.account} themeStyles={themeStyles} />
+
+        <UpdateAccountCard account={acc} themeStyles={themeStyles} />
+
         <AccountProfileUsersCard
           accountId={acc.account}
           themeStyles={themeStyles}

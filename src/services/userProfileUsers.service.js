@@ -11,3 +11,17 @@
         throw error
      }
  }
+
+ export const updateProfileUser = async ({ account, login, publicMode }) => {
+     try {
+         const response = await api.post("/user/updateProfileUser", {
+             account,
+             login,
+             publicMode,
+         });
+         return response;
+     } catch (error) {
+         console.error("updateProfileUser Xeta:", error);
+         throw error;
+     }
+ };

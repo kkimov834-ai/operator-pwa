@@ -1,8 +1,9 @@
 import { Button, Card, DotLoading, Toast, Modal } from "antd-mobile";
 import { useSearchParams } from "react-router-dom";
 import { useNavBarContext } from "../../components/NavBarContext";
-import { taskList } from "../../services/taskList.service";
-import { AiFillCloseCircle, AiOutlineCopy } from "react-icons/ai";
+import { taskList, createTask, updateTask, updateTaskPriority } from "../../services/taskList.service";
+import { getUserAccounts } from "../../services/user.service";
+import { AiFillCloseCircle, AiOutlineCopy, AiOutlinePlus } from "react-icons/ai";
 import { BASE_CATEGORIES } from "../../constants/TaskCategories.jsx";
 import { PRIORITY_ICONS, TaskPriority } from "../../constants/TaskPriority.jsx";
 import { useState, useEffect } from "react";
@@ -13,6 +14,55 @@ const TasksPage = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [newTaskForm, setNewTaskForm] = useState({
+    title: "",
+    account: "",
+    priority: "normal",
+    project: "",
+    description: "",
+  });
+  const [accountSearchQuery, setAccountSearchQuery] = useState("");
+  const [accountResults, setAccountResults] = useState([]);
+  const [isSearchingAccount, setIsSearchingAccount] = useState(false);
+  const [showAccountList, setShowAccountList] = useState(false);
+
+  const projects = [
+    "Akul Admin", "Akul Pos", "Akul Pwa", "Akul Mobile", 
+    "Akul Counting", "Dine Admin", "Dine Pos", "Dine Pwa", 
+    "Dine Qr", "Umumi"
+  ];
+
+  useEffect(() => {
+    if (accountSearchQuery.length >= 4) {
+      const searchAccounts = async () => {
+        setIsSearchingAccount(true);
+        try {
+          const res = await getUserAccounts(accountSearchQuery);
+          if (res && Array.isArray(res)) {
+             setAccountResults(res);
+          } else if (res && Array.isArray(res.data)) {
+             setAccountResults(res.data);
+          } else if (res && Array.isArray(res.accounts)) {
+             setAccountResults(res.accounts);
+          } else {
+             setAccountResults([]);
+          }
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setIsSearchingAccount(false);
+        }
+      };
+      
+      const timeoutId = setTimeout(searchAccounts, 500);
+      return () => clearTimeout(timeoutId);
+    } else {
+      setAccountResults([]);
+    }
+  }, [accountSearchQuery]);
+
 
   // URL parametrlərini idarə edirik (məs: /tasks?cat=UNSTARTED)
   const [searchParams, setSearchParams] = useSearchParams();
@@ -72,16 +122,29 @@ const TasksPage = () => {
     setEditingPriorityTaskId((current) => (current === id ? null : id));
   };
 
-  const changeTaskPriority = (task, priority) => {
+  const changeTaskPriority = async (task, priority) => {
     const id = getTaskId(task);
-    if (!id) return;
-    setTasks((prev) =>
-      prev.map((item) =>
-        getTaskId(item) === id ? { ...item, priority } : item,
-      ),
-    );
-    setEditingPriorityTaskId(null);
-    Toast.show({ content: "Prioritet dəyişdirildi" });
+    const linearId = task.linear_id;
+    if (!id || !linearId) {
+      Toast.show({ content: "Tapşırıq ID-si (Linear ID) tapılmadı" });
+      return;
+    }
+
+    Toast.show({ icon: 'loading', content: 'Yenilənir...', duration: 0 });
+    try {
+      await updateTaskPriority({ linear_id: linearId, priority: Number(priority) });
+      setTasks((prev) =>
+        prev.map((item) =>
+          getTaskId(item) === id ? { ...item, priority } : item,
+        ),
+      );
+      setEditingPriorityTaskId(null);
+      Toast.clear();
+      Toast.show({ icon: 'success', content: "Prioritet dəyişdirildi" });
+    } catch (error) {
+      Toast.clear();
+      Toast.show({ icon: 'fail', content: "Xəta baş verdi" });
+    }
   };
 
   const isEditingPriority = (task) => getTaskId(task) === editingPriorityTaskId;
@@ -224,8 +287,52 @@ const TasksPage = () => {
           <div
             style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
           >
+            {/* Add Task Card */}
+            <div
+              onClick={() => setIsAddModalVisible(true)}
+              style={{
+                background: "var(--surface-bg)",
+                border: "1px dashed var(--tab-active-bg)",
+                borderRadius: "12px",
+                padding: "16px 12px",
+                cursor: "pointer",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                minHeight: "95px",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+              }}
+            >
+              <div
+                style={{
+                  background: "var(--tab-active-bg)",
+                  color: "#fff",
+                  borderRadius: "50%",
+                  width: 36,
+                  height: 36,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 8,
+                }}
+              >
+                <AiOutlinePlus size={20} />
+              </div>
+              <span
+                style={{
+                  fontWeight: 600,
+                  color: "var(--tab-active-bg)",
+                  fontSize: "14px",
+                }}
+              >
+                Tapşırıq Əlavə Et
+              </span>
+            </div>
+
             {displayCategories.map((cat) => {
               const count = getTaskCount(cat.key);
+              if (count === 0) return null;
               return (
                 <div
                   key={cat.key}
@@ -559,16 +666,222 @@ const TasksPage = () => {
             key: "save",
             text: "Saxla",
             primary: true,
-            onClick: () => {
-              setTasks((prev) =>
-                prev.map((t) =>
-                  getTaskId(t) === getTaskId(selectedTask)
-                    ? { ...t, ...selectedTask }
-                    : t,
-                ),
-              );
-              Toast.show({ content: "Yadda saxlandı" });
-              setSelectedTask(null);
+            onClick: async () => {
+              const linearId = selectedTask?.linear_id;
+              if (!linearId) {
+                Toast.show({ content: "Linear ID tapılmadı, yeniləmək mümkün deyil." });
+                return;
+              }
+
+              Toast.show({ icon: 'loading', content: 'Saxlanılır...', duration: 0 });
+              try {
+                await updateTask({
+                  linear_id: linearId,
+                  title: selectedTask.title,
+                  description: selectedTask.description,
+                });
+
+                setTasks((prev) =>
+                  prev.map((t) =>
+                    getTaskId(t) === getTaskId(selectedTask)
+                      ? { ...t, ...selectedTask }
+                      : t,
+                  ),
+                );
+                Toast.clear();
+                Toast.show({ icon: 'success', content: "Yadda saxlandı" });
+                setSelectedTask(null);
+              } catch (error) {
+                Toast.clear();
+                Toast.show({ icon: 'fail', content: "Xəta baş verdi" });
+              }
+            },
+          },
+        ]}
+      />
+
+      {/* Create Task Modal */}
+      <Modal
+        visible={isAddModalVisible}
+        title="Tapşırıq Əlavə Et"
+        content={
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, textAlign: "left", maxHeight: "60vh", overflowY: "auto", padding: "4px" }}>
+            {/* Project Select */}
+            <div>
+              <div style={{ marginBottom: 4, fontSize: 13, fontWeight: 600 }}>Layihə (Məcburidir)</div>
+              <select
+                value={newTaskForm.project}
+                onChange={(e) => setNewTaskForm({ ...newTaskForm, project: e.target.value })}
+                style={{
+                  width: "100%", padding: 8, borderRadius: 8, border: "1px solid var(--border)",
+                  background: "var(--input-bg)", color: "var(--input-text)"
+                }}
+              >
+                <option value="">Layihə seçin...</option>
+                {projects.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+
+            {/* Title Input */}
+            <div>
+              <div style={{ marginBottom: 4, fontSize: 13, fontWeight: 600 }}>Başlıq (Məcburidir)</div>
+              <input
+                value={newTaskForm.title}
+                onChange={(e) => setNewTaskForm({ ...newTaskForm, title: e.target.value })}
+                placeholder="Tapşırığın başlığı"
+                style={{
+                  width: "100%", padding: 8, borderRadius: 8, border: "1px solid var(--border)",
+                  boxSizing: "border-box", background: "var(--input-bg)", color: "var(--input-text)",
+                }}
+              />
+            </div>
+
+            {/* Account Search Input */}
+            <div style={{ position: "relative" }}>
+              <div style={{ marginBottom: 4, fontSize: 13, fontWeight: 600 }}>Hesab (İstəyə bağlı)</div>
+              <input
+                value={accountSearchQuery}
+                onFocus={() => setShowAccountList(true)}
+                onChange={(e) => {
+                  setAccountSearchQuery(e.target.value);
+                  setNewTaskForm({ ...newTaskForm, account: "" });
+                  setShowAccountList(true);
+                }}
+                placeholder="Hesab axtar (min 4 hərf)..."
+                style={{
+                  width: "100%", padding: 8, borderRadius: 8, border: "1px solid var(--border)",
+                  boxSizing: "border-box", background: "var(--input-bg)", color: "var(--input-text)",
+                }}
+              />
+              {newTaskForm.account && (
+                <div style={{ fontSize: 12, color: "var(--tab-active-bg)", marginTop: 4 }}>
+                  Seçilmiş hesab: {newTaskForm.account}
+                </div>
+              )}
+              {showAccountList && accountSearchQuery.length >= 4 && (
+                <div style={{
+                  position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10,
+                  background: "var(--surface-bg)", border: "1px solid var(--border)",
+                  borderRadius: 8, maxHeight: 150, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                  marginTop: 4
+                }}>
+                  {isSearchingAccount ? (
+                    <div style={{ padding: 8, fontSize: 13, color: "var(--muted-text)", textAlign: "center" }}>Axtarılır...</div>
+                  ) : accountResults.length > 0 ? (
+                    accountResults.map((acc, i) => {
+                      const accLabel = acc.account || acc.phone || acc.name || acc.toString();
+                      return (
+                        <div
+                          key={i}
+                          onClick={() => {
+                            setNewTaskForm({ ...newTaskForm, account: accLabel });
+                            setAccountSearchQuery(accLabel);
+                            setShowAccountList(false);
+                          }}
+                          style={{ padding: "8px 12px", fontSize: 14, borderBottom: "1px solid var(--border)", cursor: "pointer", color: "var(--app-text)" }}
+                        >
+                          {accLabel}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div style={{ padding: 8, fontSize: 13, color: "var(--muted-text)", textAlign: "center" }}>Nəticə tapılmadı</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Priority Select */}
+            <div>
+              <div style={{ marginBottom: 4, fontSize: 13, fontWeight: 600 }}>Prioritet (İstəyə bağlı)</div>
+              <select
+                value={newTaskForm.priority}
+                onChange={(e) => setNewTaskForm({ ...newTaskForm, priority: e.target.value })}
+                style={{
+                  width: "100%", padding: 8, borderRadius: 8, border: "1px solid var(--border)",
+                  background: "var(--input-bg)", color: "var(--input-text)"
+                }}
+              >
+                <option value="low">Aşağı</option>
+                <option value="normal">Normal</option>
+                <option value="high">Yüksək</option>
+              </select>
+            </div>
+
+            {/* Description Textarea */}
+            <div>
+              <div style={{ marginBottom: 4, fontSize: 13, fontWeight: 600 }}>Açıqlama (İstəyə bağlı)</div>
+              <textarea
+                value={newTaskForm.description}
+                onChange={(e) => setNewTaskForm({ ...newTaskForm, description: e.target.value })}
+                rows={3}
+                placeholder="Əlavə məlumat..."
+                style={{
+                  width: "100%", padding: 8, borderRadius: 8, border: "1px solid var(--border)",
+                  boxSizing: "border-box", background: "var(--input-bg)", color: "var(--input-text)",
+                }}
+              />
+            </div>
+          </div>
+        }
+        closeOnAction
+        onClose={() => setIsAddModalVisible(false)}
+        actions={[
+          {
+            key: "cancel",
+            text: "Ləğv et",
+            onClick: () => setIsAddModalVisible(false),
+          },
+          {
+            key: "save",
+            text: "Əlavə Et",
+            primary: true,
+            onClick: async () => {
+              if (!newTaskForm.title.trim()) {
+                Toast.show({ content: "Başlıq daxil edilməlidir" });
+                return;
+              }
+              if (!newTaskForm.project) {
+                Toast.show({ content: "Layihə seçilməlidir" });
+                return;
+              }
+              
+              Toast.show({ icon: 'loading', content: 'Yaradılır...', duration: 0 });
+              try {
+                const payload = {
+                  title: `[${newTaskForm.project}] ${newTaskForm.title.trim()}`,
+                  description: newTaskForm.description,
+                  priority: newTaskForm.priority
+                };
+                if (newTaskForm.account) {
+                  payload.account = newTaskForm.account;
+                }
+                await createTask(payload);
+                Toast.clear();
+                Toast.show({ icon: 'success', content: "Tapşırıq yaradıldı" });
+                setIsAddModalVisible(false);
+                setNewTaskForm({ title: "", account: "", priority: "normal", project: "", description: "" });
+                setAccountSearchQuery("");
+                // Refetch tasks
+                try {
+                  setLoading(true);
+                  const res = await taskList();
+                  if (res && res.status === "success") {
+                    setTasks(res.data || []);
+                  } else if (Array.isArray(res)) {
+                    setTasks(res);
+                  } else if (res?.data) {
+                    setTasks(res.data);
+                  }
+                } catch (error) {
+                  console.error("Tapşırıqlar yüklənərkən xəta:", error);
+                } finally {
+                  setLoading(false);
+                }
+              } catch (error) {
+                Toast.clear();
+                Toast.show({ icon: 'fail', content: "Xəta baş verdi" });
+              }
             },
           },
         ]}

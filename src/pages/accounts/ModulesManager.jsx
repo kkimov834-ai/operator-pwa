@@ -1,11 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Button, Toast } from "antd-mobile";
-import {
-  addModules,
-  removeModule,
-  addTariffs,
-  removeService,
-} from "./accountsStore";
+import { ModuleService } from "../../services/module.service";
 import { userModules } from "../../services/userModules.secvice";
 import { allModules } from "../../services/allModules.service";
 import ModuleCard from "./ModuleCard";
@@ -103,30 +98,33 @@ export default function ModulesManager({ accountId }) {
   const [selectedTariff, setSelectedTariff] = useState(null);
   const [collapsed, setCollapsed] = useState([]);
 
+  const loadAccountModules = async (showLoader = true) => {
+    if (!accountId) return;
+    if (showLoader) setLoading(true);
+    try {
+      const res = await userModules(accountId);
+      const items = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.data)
+          ? res.data
+          : Array.isArray(res?.modules)
+            ? res.modules
+            : [];
+      // Ensure every module has a guaranteed `id`
+      const normalized = items.map((m, idx) => ({
+        ...m,
+        id: m.id || m._id || m.module || m.name || `mod_${idx}`,
+      }));
+      setModules(normalized);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      if (showLoader) setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      if (!accountId) return;
-      setLoading(true);
-      try {
-        const res = await userModules(accountId);
-        const items = Array.isArray(res)
-          ? res
-          : Array.isArray(res?.data)
-            ? res.data
-            : Array.isArray(res?.modules)
-              ? res.modules
-              : [];
-        // Ensure every module has a guaranteed `id`
-        const normalized = items.map((m, idx) => ({
-          ...m,
-          id: m.id || m._id || m.module || m.name || `mod_${idx}`,
-        }));
-        setModules(normalized);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    loadAccountModules();
   }, [accountId]);
 
   useEffect(() => {
@@ -185,37 +183,52 @@ export default function ModulesManager({ accountId }) {
     ? currentServices.filter((service) => !activeServiceKeys.has(serviceKey(service)))
     : allCatalogServices;
 
-  const addModule = () => {
+  const addModule = async () => {
     if (!selectedModule) return;
     const item = catalog.find(
       (entry) =>
         entry.value === selectedModule || entry.label === selectedModule,
     );
     if (!item) return;
-    setModules(
-      addModules(accountId, [
-        {
-          ...item.raw,
-          module: item.label,
-          name: item.label,
-          catalogKey: item.value,
-          sourceKey: item.value,
-          services: item.services,
-        },
-      ]),
-    );
+
+    Toast.show({ icon: 'loading', content: 'Əlavə edilir...', duration: 0 });
+    try {
+      await ModuleService.addModule({
+        account: accountId,
+        module: item.label,
+        price: 0,
+        quantity: 1
+      });
+      await loadAccountModules(false);
+      Toast.clear();
+      Toast.show({ icon: 'success', content: "Modul əlavə edildi" });
+    } catch (error) {
+      Toast.clear();
+      Toast.show({ icon: 'fail', content: "Xəta baş verdi" });
+    }
+
     setSelectedModule(null);
     setShowModules(false);
-    Toast.show({ content: "Modul əlavə edildi" });
   };
 
-  const addService = (tariffData) => {
+  const addService = async (tariffData) => {
     if (!tariffModuleId || !tariffData) return;
-    setModules(
-      addTariffs(accountId, tariffModuleId, [tariffData]),
-    );
+    Toast.show({ icon: 'loading', content: 'Əlavə edilir...', duration: 0 });
+    try {
+      await ModuleService.addService({
+        account: accountId,
+        service: tariffData.id || tariffData.name || tariffData.catalogKey,
+        price: Number(tariffData.price || 0),
+        quantity: Number(tariffData.quantity || 1)
+      });
+      await loadAccountModules(false);
+      Toast.clear();
+      Toast.show({ icon: 'success', content: "Tarif əlavə edildi" });
+    } catch (error) {
+      Toast.clear();
+      Toast.show({ icon: 'fail', content: "Xəta baş verdi" });
+    }
     setTariffModuleId(null);
-    Toast.show({ content: "Tarif əlavə edildi" });
   };
 
   if (loading || catalogLoading) {
@@ -299,11 +312,24 @@ export default function ModulesManager({ accountId }) {
                   : [...prev, id],
               )
             }
-            onRemove={(moduleId, serviceId) =>
-              serviceId
-                ? setModules(removeService(accountId, moduleId, serviceId))
-                : setModules(removeModule(accountId, moduleId))
-            }
+            onRemove={async (moduleId, serviceId) => {
+              const targetModule = modules.find(m => m.id === moduleId);
+              const moduleName = targetModule?.module || targetModule?.name;
+              Toast.show({ icon: 'loading', content: 'Silinir...', duration: 0 });
+              try {
+                if (serviceId) {
+                  await ModuleService.removeService(accountId, serviceId);
+                } else {
+                  await ModuleService.removeModule(accountId, moduleName);
+                }
+                await loadAccountModules(false);
+                Toast.clear();
+                Toast.show({ icon: 'success', content: "Silindi" });
+              } catch (error) {
+                Toast.clear();
+                Toast.show({ icon: 'fail', content: "Xəta baş verdi" });
+              }
+            }}
             onAddTariff={(id) => {
               console.log("onAddTariff called with id:", id, "type:", typeof id);
               setTariffModuleId(id);
