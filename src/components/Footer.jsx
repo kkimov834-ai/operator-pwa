@@ -4,21 +4,27 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useNavBarContext } from "./NavBarContext";
 import { FaTasks, FaUser } from "react-icons/fa";
 import { CgProfile } from "react-icons/cg";
-import { MdOutlineTerminal } from "react-icons/md";
-import { LuSettings } from "react-icons/lu";
-
-const items = [
-  { key: "/", title: "Hesablar", icon: <FaUser /> },
-  { key: "/tasks", title: "Tapşırıqlar", icon: <FaTasks /> },
-  { key: "/task-environments", title: "Mühitlər", icon: <LuSettings /> },
-  { key: "/profile", title: "Hesabım", icon: <CgProfile /> },
-  { key: "/terminal", title: "Terminal", icon: <MdOutlineTerminal /> },
-];
+import { MdOutlineDashboard, MdOutlineTerminal } from "react-icons/md";
+import { ShieldCheck } from "lucide-react";
+import { useRole } from "../hooks/useRole";
 
 const Footer = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { setTitle, setShowBack, setQuery, themeStyles } = useNavBarContext();
+  const { isSuperAdmin } = useRole();
+
+  const items = [
+    { key: "/", title: "Hesablar", icon: <FaUser /> },
+    { key: "/tasks", title: "Tapşırıqlar", icon: <FaTasks /> },
+    { key: "/task-environments", title: "Mühitlər", icon: <MdOutlineDashboard /> },
+    { key: "/profile", title: "Hesabım", icon: <CgProfile /> },
+  ];
+
+  if (isSuperAdmin) {
+    items.push({ key: "/terminal", title: "Terminal", icon: <MdOutlineTerminal /> });
+    items.push({ key: "/permissions", title: "İcazələr", icon: <ShieldCheck size={18} /> });
+  }
 
   const currentPath = location.pathname;
   const activeItem = items.find((it) => {

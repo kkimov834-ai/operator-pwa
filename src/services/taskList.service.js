@@ -38,3 +38,13 @@ export const updateTaskPriority = async (payload) => {
         throw error;
     }
 }
+
+export const updateTaskStatus = async (payload) => {
+    try {
+        const response = await api.post("/task/updateStatus", payload);
+        return response.data;
+    } catch (error) {
+        console.log("Update Task Status", error);
+        throw error;
+    }
+}

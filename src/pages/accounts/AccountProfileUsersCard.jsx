@@ -139,9 +139,9 @@ export default function AccountProfileUsersCard({ accountId, themeStyles }) {
             gap: "12px",
           }}
         >
-          {profiles.map((profile) => (
+          {profiles.map((profile, idx) => (
             <div
-              key={profile.id}
+              key={profile.id || profile.login || idx}
               style={{
                 display: "flex",
                 flexDirection: "column",

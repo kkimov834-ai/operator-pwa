@@ -18,26 +18,25 @@ export const RBACProvider = ({ children }) => {
             }
 
             try {
-                // Bizdə auth.services-də getCurrentUser /user/me qaytarır
-                // RuleService isə yeni yaratdığımızdır
                 const [userRes, ruleRes] = await Promise.all([
                     getCurrentUser(),
                     RuleService.getRules()
                 ]);
 
-                if (userRes?.status === "success" && userRes?.data) {
-                    const userData = userRes.data;
-                    setUser(userData);
+                const userData = userRes?.data?.data || userRes?.data || userRes;
+                const role = userData?.role || userRes?.role;
 
-                    if (ruleRes?.status === "success" && ruleRes?.data) {
-                        const rulesData = ruleRes.data;
-                        const role = userData.role;
-                        const forbidden = rulesData.forbidden?.[role] || [];
-                        setForbiddenIds(forbidden);
-                    }
-                } else if (userRes?.identifier) {
-                    // Bəzi hallarda status success olmaya bilər amma data gələr
-                    setUser(userRes);
+                if (userData) {
+                    setUser(userData);
+                }
+
+                const rulesData = ruleRes?.data?.data || ruleRes?.data || ruleRes;
+                if (rulesData?.forbidden && role) {
+                    const roleKey = Object.keys(rulesData.forbidden || {}).find(
+                        k => k.toLowerCase() === role?.toLowerCase()
+                    ) || role;
+                    const forbidden = rulesData.forbidden?.[roleKey] || [];
+                    setForbiddenIds(forbidden.map(Number));
                 }
             } catch (error) {
                 console.error("RBAC məlumatları yüklənərkən xəta baş verdi:", error);

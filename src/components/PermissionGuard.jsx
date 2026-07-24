@@ -6,7 +6,7 @@ const PermissionGuard = ({ id, children, fallback = null }) => {
   const { forbiddenIds } = useRBAC();
 
   const numericId = PERMISSION_MAP[id] !== undefined ? PERMISSION_MAP[id] : id;
-  const isForbidden = forbiddenIds.includes(Number(numericId));
+  const isForbidden = forbiddenIds.some(fid => Number(fid) === Number(numericId));
 
   if (isForbidden) return fallback;
 

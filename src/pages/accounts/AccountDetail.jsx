@@ -7,6 +7,8 @@ import AccountHistoryCard from "./AccountHistoryCard";
 import AccountUserInfoCard from "./AccountUserInfoCard";
 import AccountProfileUsersCard from "./AccountProfileUsersCard";
 import UpdateAccountCard from "./UpdateAccountCard";
+import AccountInfoCard from "./AccountInfoCard";
+import AccountTasksCard from "./AccountTasksCard";
 import { useNavBarContext } from "../../components/NavBarContext";
 import { getUserInfo } from "../../services/userInfo.service";
 import { getUserAccounts } from "../../services/user.service";
@@ -110,7 +112,7 @@ export default function AccountDetail() {
         padding: "16px",
         background: themeStyles?.pageBg,
         minHeight: "100vh",
-        paddingBottom: "calc(30px + env(safe-area-inset-bottom, 24px))",
+        paddingBottom: "calc(100px + env(safe-area-inset-bottom, 24px))",
       }}
     >
       <Space direction="vertical" block style={{ "--gap": "12px" }}>
@@ -128,6 +130,16 @@ export default function AccountDetail() {
         <AccountHistoryCard accountId={acc.account} themeStyles={themeStyles} />
 
         <ModulesManager accountId={acc.account} />
+
+        <AccountInfoCard
+          accountId={acc.account}
+          themeStyles={themeStyles}
+        />
+
+        <AccountTasksCard
+          accountId={acc.account}
+          themeStyles={themeStyles}
+        />
       </Space>
     </div>
   );

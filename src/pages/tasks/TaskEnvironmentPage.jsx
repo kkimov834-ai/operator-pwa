@@ -1,13 +1,27 @@
 import React, { useEffect, useState } from "react";
-import { Card, DotLoading } from "antd-mobile";
+import { Card, DotLoading, Toast, Button, ActionSheet } from "antd-mobile";
+import { useSearchParams } from "react-router-dom";
 import { useNavBarContext } from "../../components/NavBarContext";
 import { taskList } from "../../services/taskList.service";
+import { updateTaskStatus } from "../../services/taskList.service";
+import { RejectModal } from "../../components/RejectModal";
+import { AiOutlineCheck, AiOutlineClose } from "react-icons/ai";
+import { TaskCard } from "./TaskComponents.jsx";
 
 const TaskEnvironmentPage = () => {
   const { query, setQuery, setTitle, setShowBack, setShowSearch, themeStyles } =
     useNavBarContext();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectTaskId, setRejectTaskId] = useState(null);
+  
+  const [actionSheetTaskId, setActionSheetTaskId] = useState(null);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedEnvKey = searchParams.get("env")?.toUpperCase();
+
   const environmentKeys = ["DEPLOY", "DEV", "BETA", "ONLINE"];
   const envColors = {
     DEPLOY: "#5B21B6", // dark purple
@@ -15,14 +29,13 @@ const TaskEnvironmentPage = () => {
     BETA: "#C2410C", // dark orange
     ONLINE: "#166534", // dark green
   };
-  const [expandedEnvs, setExpandedEnvs] = useState(() =>
-    environmentKeys.reduce((acc, env) => ({ ...acc, [env]: true }), {}),
-  );
-  const toggleEnv = (env) =>
-    setExpandedEnvs((prev) => ({ ...prev, [env]: !prev[env] }));
 
   useEffect(() => {
-    setTitle("Tapşırıq Mühitləri");
+    if (selectedEnvKey && environmentKeys.includes(selectedEnvKey)) {
+      setTitle(`${selectedEnvKey} Tapşırıqları`);
+    } else {
+      setTitle("Tapşırıq Mühitləri");
+    }
     setShowBack(true);
     setShowSearch(true);
     setQuery("");
@@ -31,7 +44,7 @@ const TaskEnvironmentPage = () => {
       setShowSearch(false);
       setQuery("");
     };
-  }, [setTitle, setShowBack, setShowSearch, setQuery]);
+  }, [selectedEnvKey, setTitle, setShowBack, setShowSearch, setQuery]);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -67,16 +80,51 @@ const TaskEnvironmentPage = () => {
     fetchTasks();
   }, []);
 
-  const getTaskName = (task) => task.title || task.name || "N/A";
-  const getTaskDescription = (task) => task.description || "Açıqlama yoxdur";
-  const getTaskCreatedAt = (task) => {
-    const value = task.createdAt || task.created_at;
-    return value ? new Date(value).toLocaleString() : "N/A";
+  const refreshTasks = async () => {
+    try {
+      const res = await taskList();
+      const allTasks = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.data)
+          ? res.data
+          : Array.isArray(res?.data?.data)
+            ? res.data.data
+            : [];
+      const doneTasks = allTasks.filter((task) => {
+        const status = (task.status || task.stage || task.state || "").toLowerCase();
+        const environment = (task.environment || task.env)?.toString().trim();
+        return status === "done" && environment && environment.length > 0;
+      });
+      setTasks(doneTasks);
+    } catch (error) {
+      console.error(error);
+    }
   };
-  const getTaskUpdatedAt = (task) => {
-    const value = task.updatedAt || task.updated_at;
-    return value ? new Date(value).toLocaleString() : "N/A";
+
+  const handleStatusChange = async (linearId, newStatus) => {
+    if (!linearId) {
+      Toast.show({ content: "Linear ID tapılmadı" });
+      return;
+    }
+    if (newStatus === "reject") {
+      setRejectTaskId(linearId);
+      setRejectModalOpen(true);
+      return;
+    }
+
+    try {
+      await updateTaskStatus({
+        linear_id: linearId,
+        status: newStatus,
+      });
+      Toast.show({ content: "Status yeniləndi", icon: "success" });
+      refreshTasks();
+    } catch (err) {
+      console.error(err);
+      Toast.show({ content: err.response?.data?.message || "Xəta baş verdi", icon: "fail" });
+    }
   };
+
   const getTaskEnvironment = (task) =>
     (task.environment || task.env)?.toString().toUpperCase() || "OTHER";
   const getTaskLinearId = (task) => task.linear_id || task.linearId || "-";
@@ -101,64 +149,37 @@ const TaskEnvironmentPage = () => {
     return searchableText.includes(normalizedQuery);
   });
 
-  const renderTaskCard = (task) => (
-    <Card
-      key={task.id || task._id || getTaskLinearId(task)}
-      style={{
-        marginBottom: 12,
-        background: themeStyles?.cardBg,
-        border: `1px solid ${themeStyles?.border}`,
-      }}
-      title={
-        <div style={{ fontWeight: "bold", color: themeStyles?.cardText }}>
-          {getTaskName(task)}
-        </div>
-      }
-    >
+  const renderTaskCard = (task) => {
+    const extraAction = getTaskEnvironment(task) === "DEV" ? (
       <div
+        onClick={(e) => { e.stopPropagation(); setActionSheetTaskId(getTaskLinearId(task)); }}
         style={{
-          color: themeStyles?.cardTextSecondary,
-          fontSize: 13,
-          marginBottom: 8,
+          padding: "6px 16px", 
+          borderRadius: 16, 
+          border: `1px solid ${themeStyles?.border || "var(--border)"}`,
+          background: themeStyles?.surfaceBg || "var(--surface-bg)",
+          color: themeStyles?.cardText || "var(--card-text)", 
+          fontSize: 12,
+          fontWeight: 600,
+          cursor: "pointer",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
         }}
       >
-        {getTaskDescription(task)}
+        Status ▾
       </div>
+    ) : null;
 
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 8,
-          marginTop: 10,
-        }}
-      >
-        {[
-          `ID: ${getTaskLinearId(task)}`,
-          `Yaradılma: ${getTaskCreatedAt(task)}`,
-          `Yenilənmə: ${getTaskUpdatedAt(task)}`,
-        ].map((label) => (
-          <span
-            key={label}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              padding: "6px 10px",
-              borderRadius: 999,
-              background:
-                envColors[getTaskEnvironment(task)] || themeStyles?.surfaceBg,
-              color: "#ffffff",
-              fontSize: 12,
-              border: `1px solid ${envColors[getTaskEnvironment(task)] || themeStyles?.border}`,
-              wordBreak: "break-word",
-            }}
-          >
-            {label}
-          </span>
-        ))}
+    return (
+      <div key={task.id || task._id || getTaskLinearId(task)} style={{ marginBottom: 12 }}>
+        <TaskCard
+          task={task}
+          onTaskClick={() => {}} 
+          onTaskUpdate={refreshTasks}
+          extraContent={extraAction}
+        />
       </div>
-    </Card>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -191,119 +212,121 @@ const TaskEnvironmentPage = () => {
         padding: 12,
         paddingBottom: 110,
         minHeight: "100vh",
-        background: themeStyles?.pageBg,
-        color: themeStyles?.text,
+        background: themeStyles?.pageBg || "var(--app-bg)",
+        color: themeStyles?.text || "var(--app-text)",
       }}
     >
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-          gap: 12,
-        }}
-      >
-        {visibleEnvironments.length === 0 ? (
-          <div
-            style={{
-              color: themeStyles?.mutedText,
-              textAlign: "center",
-              fontSize: 14,
-              padding: "24px 0",
-            }}
-          >
-            Heç bir done tapşırıq tapılmadı.
-          </div>
-        ) : (
-          visibleEnvironments.map((env) => (
+      {!selectedEnvKey ? (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 12,
+          }}
+        >
+          {visibleEnvironments.length === 0 ? (
             <div
-              key={env}
               style={{
-                background: themeStyles?.surfaceBg || "rgba(255,255,255,0.04)",
-                border: `1px solid ${themeStyles?.border}`,
-                borderLeft: `6px solid ${envColors[env]}`,
-                borderRadius: 16,
-                padding: 12,
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
+                color: themeStyles?.mutedText || "var(--muted-text)",
+                textAlign: "center",
+                fontSize: 14,
+                padding: "24px 0",
+                gridColumn: "1 / -1",
               }}
             >
-              <button
-                type="button"
-                onClick={() => toggleEnv(env)}
-                style={{
-                  all: "unset",
-                  width: "100%",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  cursor: "pointer",
-                  padding: "6px 0",
-                  borderBottom: `1px solid ${themeStyles?.border}`,
-                }}
-              >
-                <div
-                  style={{
-                    fontWeight: 700,
-                    fontSize: 15,
-                    color: themeStyles?.text,
-                  }}
-                >
-                  {env}
-                </div>
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    fontSize: 12,
-                    color: themeStyles?.mutedText,
-                  }}
-                >
-                  <span
-                    style={{
-                      background: envColors[env],
-                      color: "#ffffff",
-                      padding: "4px 10px",
-                      borderRadius: 999,
-                      fontWeight: 700,
-                      border: `1px solid ${envColors[env]}`,
-                    }}
-                  >
-                    {tasksByEnvironment[env].length} Tapşırıq
-                  </span>
-                  <span>{expandedEnvs[env] ? "▾" : "▸"}</span>
-                </div>
-              </button>
-
-              {expandedEnvs[env] ? (
-                tasksByEnvironment[env].length === 0 ? (
-                  <div
-                    style={{
-                      color: themeStyles?.mutedText,
-                      textAlign: "center",
-                      fontSize: 12,
-                      padding: "16px 0",
-                    }}
-                  >
-                    Tapşırıq yoxdur.
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 10,
-                    }}
-                  >
-                    {tasksByEnvironment[env].map(renderTaskCard)}
-                  </div>
-                )
-              ) : null}
+              Heç bir done tapşırıq tapılmadı.
             </div>
-          ))
-        )}
-      </div>
+          ) : (
+            visibleEnvironments.map((env) => {
+              const count = tasksByEnvironment[env].length;
+              return (
+                <div
+                  key={env}
+                  onClick={() => setSearchParams({ env: env.toLowerCase() })}
+                  style={{
+                    background: themeStyles?.surfaceBg || "var(--card-bg)",
+                    border: `1px solid ${themeStyles?.border || "var(--border)"}`,
+                    borderLeft: `4px solid ${envColors[env]}`,
+                    borderRadius: "12px",
+                    padding: "16px 12px",
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    minHeight: "95px",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        color: themeStyles?.cardText || "var(--card-text)",
+                        fontSize: "14px",
+                      }}
+                    >
+                      {env}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "20px",
+                      fontWeight: "700",
+                      color: count > 0 ? envColors[env] : (themeStyles?.mutedText || "var(--muted-text)"),
+                      marginTop: 8,
+                    }}
+                  >
+                    {count}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {tasksByEnvironment[selectedEnvKey]?.length === 0 || !tasksByEnvironment[selectedEnvKey] ? (
+            <div
+              style={{
+                padding: "40px 12px",
+                color: themeStyles?.mutedText || "var(--muted-text)",
+                textAlign: "center",
+                fontSize: "14px",
+                background: themeStyles?.surfaceBg || "var(--surface-bg)",
+                borderRadius: "8px",
+              }}
+            >
+              Bu bölmədə tapşırıq tapılmadı.
+            </div>
+          ) : (
+            tasksByEnvironment[selectedEnvKey].map(renderTaskCard)
+          )}
+        </div>
+      )}
+
+      <RejectModal
+        isOpen={rejectModalOpen}
+        onClose={() => {
+          setRejectModalOpen(false);
+          setRejectTaskId(null);
+        }}
+        linearId={rejectTaskId}
+        onRefresh={refreshTasks}
+      />
+
+      <ActionSheet
+        visible={!!actionSheetTaskId}
+        actions={[
+          { text: '✅ Təsdiqlə', key: 'accept' },
+          { text: '❌ İmtina et', key: 'reject', danger: true },
+        ]}
+        onClose={() => setActionSheetTaskId(null)}
+        onAction={(action) => {
+          handleStatusChange(actionSheetTaskId, action.key);
+          setActionSheetTaskId(null);
+        }}
+        cancelText="Ləğv et"
+      />
     </div>
   );
 };

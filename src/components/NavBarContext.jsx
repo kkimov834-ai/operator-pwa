@@ -11,6 +11,7 @@ export function NavBarProvider({ children }) {
   const [title, setTitle] = useState("");
   const [showBack, setShowBack] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [extraNavNode, setExtraNavNode] = useState(null);
 
   const toggleSearch = () => setShowSearch((prev) => !prev);
 
@@ -130,6 +131,8 @@ export function NavBarProvider({ children }) {
         showBack,
         setShowBack,
         toggleSearch,
+        extraNavNode,
+        setExtraNavNode,
       }}
     >
       {children}

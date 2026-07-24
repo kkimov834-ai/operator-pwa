@@ -1,6 +1,7 @@
 export const PERMISSION_MAP = {
     // Navigation
     'nav-home': 1,
+    'nav-stats': 1,
     'nav-accounts': 2,
     'nav-tasks': 3,
     'nav-updates': 4,
@@ -24,6 +25,20 @@ export const PERMISSION_MAP = {
     'task-priority-select': 16,
     'send-message': 17,
     'partner-info': 18,
+    'nav-dashboard': 19,
+    'nav-taskscleanup': 20,
+    'nav-chats': 21,
+    'tab-users': 22,
+    'add-task': 23,
+    'update-account': 24,
+    'add-module': 25,
+    'remove-module': 26,
+    'add-service': 27,
+    'manage-services': 28,
+    'manage-finance': 29,
+    'add-equipment': 30,
+    'manage-equipment': 31,
+    'update-info': 32,
 };
 
 export const PERMISSION_NAMES = {
@@ -45,4 +60,18 @@ export const PERMISSION_NAMES = {
     [PERMISSION_MAP['task-priority-select']]: 'Tapşırıq Prioriteti',
     [PERMISSION_MAP['send-message']]: 'Mesaj Göndər',
     [PERMISSION_MAP['partner-info']]: 'Tərəfdaş Məlumatı',
+    [PERMISSION_MAP['nav-dashboard']]: 'Tapşırıq lövhəsi',
+    [PERMISSION_MAP['nav-taskscleanup']]: 'Linear Təmizləmə',
+    [PERMISSION_MAP['nav-chats']]: 'Dəstək Çatı',
+    [PERMISSION_MAP['tab-users']]: 'İstifadəçilər Tabı',
+    [PERMISSION_MAP['add-task']]: 'Tapşırıq Əlavə Et',
+    [PERMISSION_MAP['update-account']]: 'Hesab Məlumatlarını Yenilə (Form)',
+    [PERMISSION_MAP['add-module']]: 'Modul Əlavə Et',
+    [PERMISSION_MAP['remove-module']]: 'Sil',
+    [PERMISSION_MAP['add-service']]: 'Xidmət Əlavə Et',
+    [PERMISSION_MAP['manage-services']]: 'Xidmət Statusunu İdarə Et',
+    [PERMISSION_MAP['manage-finance']]: 'Maliyyə Əməliyyatlarını İdarə Et',
+    [PERMISSION_MAP['add-equipment']]: 'Avadanlıq Əlavə Et',
+    [PERMISSION_MAP['manage-equipment']]: 'Avadanlığı Redaktə et / Sil',
+    [PERMISSION_MAP['update-info']]: 'Müştəri Statistikasını Redaktə Et',
 };

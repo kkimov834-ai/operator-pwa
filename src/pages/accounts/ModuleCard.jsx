@@ -1,5 +1,6 @@
 import React from "react";
 import { Button, Card } from "antd-mobile";
+import PermissionGuard from "../../components/auth/PermissionGuard";
 
 export default function ModuleCard({
   module,
@@ -71,6 +72,7 @@ export default function ModuleCard({
             >
               {collapsed ? "Aç" : "Gizlət"}
             </Button>
+            <PermissionGuard id="remove-module" >
             <Button
               size="small"
               onClick={() => onRemove(module.id)}
@@ -84,6 +86,7 @@ export default function ModuleCard({
             >
               Sil
             </Button>
+           </PermissionGuard>
           </div>
           <Button
             size="small"
@@ -191,6 +194,7 @@ export default function ModuleCard({
                   </div>
                 </div>
               </div>
+              <PermissionGuard id="remove-module" >
               <Button
                 size="mini"
                 style={{
@@ -205,6 +209,7 @@ export default function ModuleCard({
               >
                 Sil
               </Button>
+              </PermissionGuard>
             </div>
           ))}
         </div>

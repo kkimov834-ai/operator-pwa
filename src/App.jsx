@@ -6,6 +6,7 @@ import NavBar from "./components/NavBar";
 import useAuthCheck from "./hooks/useAuthCheck";
 import { NavBarProvider } from "./components/NavBarContext";
 import { RBACProvider } from "./context/RBACContext";
+import { PermissionDebugProvider } from "./context/PermissionDebugContext";
 
 export default function App() {
   const { token, isLoading } = useAuthCheck();
@@ -17,13 +18,15 @@ export default function App() {
   }
 
   return (
-    <RBACProvider>
-      <NavBarProvider>
-        <PWAModal />
-        {!hideChrome && <NavBar />}
-        <AppRoutes />
-        {!hideChrome && <Footer />}
-      </NavBarProvider>
-    </RBACProvider>
+    <PermissionDebugProvider>
+      <RBACProvider>
+        <NavBarProvider>
+          <PWAModal />
+          {!hideChrome && <NavBar />}
+          <AppRoutes />
+          {!hideChrome && <Footer />}
+        </NavBarProvider>
+      </RBACProvider>
+    </PermissionDebugProvider>
   );
 }

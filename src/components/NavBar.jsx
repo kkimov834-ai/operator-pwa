@@ -16,6 +16,7 @@ export default function NavBar({ placeholder = "Axtar" }) {
     isDark,
     themeStyles,
     toggleSearch,
+    extraNavNode,
   } = useNavBarContext();
   const navigate = useNavigate();
 
@@ -131,6 +132,12 @@ export default function NavBar({ placeholder = "Axtar" }) {
         >
           <FiSearch size={18} />
         </button>
+
+        {extraNavNode && (
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {extraNavNode}
+          </div>
+        )}
 
         <button
           onClick={toggleTheme}

@@ -8,6 +8,8 @@ import Terminal from "../pages/terminal/TerminalPage";
 import SuGuard from "../components/auth/SuGuard";
 import LinearCleanUp from "../pages/tasks/LinearCleanUp";
 import TaskEnvironmentPage from "../pages/tasks/TaskEnvironmentPage";
+import SuperAdminGuard from "../components/auth/SuperAdminGuard";
+import PermissionsPage from "../pages/permissions/PermissionsPage";
 
 export default function AppRoutes() {
   return (
@@ -19,7 +21,11 @@ export default function AppRoutes() {
         <Route path="/task-environments" element={<TaskEnvironmentPage />} />
         <Route path="/:id" element={<AccountDetail />} />
         <Route path="/profile" element={<MyAccount />} />
-        <Route path="/terminal" element={<Terminal />} />
+        <Route path="/terminal" element={
+          <SuperAdminGuard>
+            <Terminal />
+          </SuperAdminGuard>
+        } />
         <Route
           path="/tasks/cleanup"
           element={
@@ -28,7 +34,14 @@ export default function AppRoutes() {
             </SuGuard>
           }
         />
+        <Route
+          path="/permissions"
+          element={
+            <PermissionsPage />
+          }
+        />
       </Routes>
     </>
   );
 }
+
