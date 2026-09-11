@@ -5,14 +5,14 @@ import { useNavBarContext } from "./NavBarContext";
 import { FaTasks, FaUser } from "react-icons/fa";
 import { CgProfile } from "react-icons/cg";
 import { MdOutlineDashboard, MdOutlineTerminal } from "react-icons/md";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Users, LayoutDashboard, UserCheck, BarChart2, BarChart3 } from "lucide-react";
 import { useRole } from "../hooks/useRole";
 
 const Footer = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { setTitle, setShowBack, setQuery, themeStyles } = useNavBarContext();
-  const { isSuperAdmin } = useRole();
+  const { isSuperAdmin, isPartner } = useRole();
 
   const items = [
     { key: "/", title: "Hesablar", icon: <FaUser /> },
@@ -21,7 +21,15 @@ const Footer = () => {
     { key: "/profile", title: "Hesabım", icon: <CgProfile /> },
   ];
 
+  if (isPartner) {
+    items.push({ key: "/partner-dashboard", title: "Kabinetim", icon: <LayoutDashboard size={18} /> });
+    items.push({ key: "/partner-clients", title: "Müştərilər", icon: <UserCheck size={18} /> });
+  }
+
   if (isSuperAdmin) {
+    items.push({ key: "/partners", title: "Partnyorlar", icon: <Users size={18} /> });
+    items.push({ key: "/client-stats", title: "Müştəri Stat.", icon: <BarChart3 size={18} /> });
+    items.push({ key: "/operator-stats", title: "Operator Stat.", icon: <BarChart2 size={18} /> });
     items.push({ key: "/terminal", title: "Terminal", icon: <MdOutlineTerminal /> });
     items.push({ key: "/permissions", title: "İcazələr", icon: <ShieldCheck size={18} /> });
   }

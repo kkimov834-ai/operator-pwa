@@ -166,17 +166,44 @@ const TasksPage = () => {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <>
-      <div style={{
+      <div className="tasks-page" style={{
         padding: 12,
         paddingBottom: 'calc(84px + env(safe-area-inset-bottom))',
         minHeight: '100vh',
         background: 'var(--app-bg)',
         color: 'var(--app-text)',
       }}>
+        <div className="tasks-page-intro">
+          <div>
+            <div className="tasks-page-kicker">İş axını</div>
+            <h1 className="tasks-page-heading">Tapşırıqlar</h1>
+          </div>
+          <div className="tasks-page-total">
+            <strong>{tasks.length}</strong>
+            <span>ümumi</span>
+          </div>
+        </div>
 
         {/* View-mode tab switcher (only on overview) */}
         {!selectedCategoryKey && (
-          <ViewModeTabs taskViewMode={taskViewMode} onChangeMode={setTaskViewMode} />
+          <div className="tasks-mode-shell" style={{ position: 'relative' }}>
+            <ViewModeTabs taskViewMode={taskViewMode} onChangeMode={setTaskViewMode} />
+            <div style={{
+              position: 'absolute',
+              top: '-6px',
+              right: '-4px',
+              background: 'var(--tab-active-bg)',
+              color: '#fff',
+              padding: '2px 8px',
+              borderRadius: '12px',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+              zIndex: 10
+            }}>
+              Cəmi: {tasks.length}
+            </div>
+          </div>
         )}
 
         {!selectedCategoryKey ? (
@@ -185,7 +212,7 @@ const TasksPage = () => {
             globalResults.length > 0 ? (
               <GlobalSearchResults tasks={globalResults} onTaskClick={setSelectedTask} />
             ) : (
-              <div style={{
+              <div className="tasks-empty-state" style={{
                 padding: '40px 12px', color: 'var(--muted-text)', textAlign: 'center',
                 fontSize: '14px', background: 'var(--surface-bg)', borderRadius: '8px',
               }}>

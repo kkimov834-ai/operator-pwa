@@ -246,7 +246,7 @@ const TaskEnvironmentPage = () => {
                   style={{
                     background: themeStyles?.surfaceBg || "var(--card-bg)",
                     border: `1px solid ${themeStyles?.border || "var(--border)"}`,
-                    borderLeft: `4px solid ${envColors[env]}`,
+                    borderTop: `4px solid ${envColors[env]}`,
                     borderRadius: "12px",
                     padding: "16px 12px",
                     cursor: "pointer",

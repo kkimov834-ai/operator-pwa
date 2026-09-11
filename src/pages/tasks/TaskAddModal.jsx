@@ -1,5 +1,6 @@
-import { Modal, Toast } from "antd-mobile";
+import { Popup, Button, Toast } from "antd-mobile";
 import { useState, useEffect } from "react";
+import { useRole } from "../../hooks/useRole";
 import { createTask, taskList } from "../../services/taskList.service";
 import { getUserAccounts } from "../../services/user.service";
 import { PRIORITY_ICONS } from "../../constants/TaskPriority";
@@ -25,6 +26,7 @@ export default function TaskAddModal({
   const [showAccountList, setShowAccountList] = useState(false);
 
   const [showPrioritySelector, setShowPrioritySelector] = useState(false);
+  const { isOperator, isPartner } = useRole();
 
   useEffect(() => {
     if (accountSearchQuery.length >= 4) {
@@ -115,19 +117,30 @@ export default function TaskAddModal({
   };
 
   return (
-    <Modal
+    <Popup
       visible={isAddModalVisible}
-      title="Tapşırıq Əlavə Et"
-      content={
+      onMaskClick={() => setIsAddModalVisible(false)}
+      bodyStyle={{
+        height: '85vh',
+        borderTopLeftRadius: '16px',
+        borderTopRightRadius: '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--app-bg)',
+      }}
+    >
+      <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={{ margin: 0, fontSize: 18, color: 'var(--app-text)' }}>Tapşırıq Əlavə Et</h2>
+        <Button size="small" onClick={() => setIsAddModalVisible(false)} style={{ border: 'none', background: 'transparent', color: 'var(--muted-text)', fontSize: 18, padding: 0 }}>✕</Button>
+      </div>
+      
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: 12,
-            textAlign: "left",
-            maxHeight: "60vh",
-            overflowY: "auto",
-            padding: "4px",
+            gap: 16,
+            paddingBottom: "24px"
           }}
         >
           {/* Project Select */}
@@ -292,18 +305,22 @@ export default function TaskAddModal({
               Prioritet
             </div>
             <div
-              onClick={() => setShowPrioritySelector(!showPrioritySelector)}
+              onClick={() => {
+                if (!(isOperator || isPartner)) {
+                  setShowPrioritySelector(!showPrioritySelector);
+                }
+              }}
               style={{
                 width: "100%",
                 padding: "8px 12px",
                 borderRadius: 8,
                 border: "1px solid var(--border)",
-                background: "var(--input-bg)",
-                color: "var(--input-text)",
+                background: (isOperator || isPartner) ? "rgba(128, 128, 128, 0.1)" : "var(--input-bg)",
+                color: (isOperator || isPartner) ? "var(--muted-text)" : "var(--input-text)",
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                cursor: "pointer"
+                cursor: (isOperator || isPartner) ? "not-allowed" : "pointer"
               }}
             >
               {getPriorityData(newTaskForm.priority).icon}
@@ -375,22 +392,12 @@ export default function TaskAddModal({
             />
           </div>
         </div>
-      }
-      closeOnAction
-      onClose={() => setIsAddModalVisible(false)}
-      actions={[
-        {
-          key: "cancel",
-          text: "Ləğv et",
-          onClick: () => setIsAddModalVisible(false),
-        },
-        {
-          key: "save",
-          text: "Əlavə Et",
-          primary: true,
-          onClick: handleSave,
-        },
-      ]}
-    />
+      </div>
+      
+      <div style={{ padding: '16px', borderTop: '1px solid var(--border)', display: 'flex', gap: '12px', background: 'var(--app-bg)' }}>
+        <Button block onClick={() => setIsAddModalVisible(false)} style={{ flex: 1, borderRadius: 8, background: 'var(--surface-bg)', color: 'var(--app-text)', border: '1px solid var(--border)' }}>Ləğv et</Button>
+        <Button block color="primary" onClick={handleSave} style={{ flex: 1, borderRadius: 8 }}>Əlavə Et</Button>
+      </div>
+    </Popup>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Badge, Card, Space } from "antd-mobile";
-import { ClockCircleOutline } from "antd-mobile-icons";
+import { ClockCircleOutline, DownOutline, UpOutline } from "antd-mobile-icons";
 import { userHistory } from "../../services/userHistory.service";
 
 const normalizeList = (value) => {
@@ -26,6 +26,7 @@ const getAmountColor = (paymentSource, themeStyles) => {
 export default function AccountHistoryCard({ accountId, themeStyles }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   useEffect(() => {
     if (!accountId) return undefined;
@@ -60,6 +61,7 @@ export default function AccountHistoryCard({ accountId, themeStyles }) {
 
   return (
     <Card
+      className="account-history-card"
       style={{
         borderRadius: "16px",
         background: themeStyles?.cardBg || "#fff",
@@ -68,10 +70,31 @@ export default function AccountHistoryCard({ accountId, themeStyles }) {
       }}
       bodyStyle={{ padding: "16px" }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "16px", fontWeight: "700", marginBottom: "16px", color: themeStyles?.cardText }}>
-        <ClockCircleOutline color="#1890ff" /> Hesab tarixi
+      <div
+        className="account-history-toggle"
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        style={{ 
+          display: "flex", 
+          alignItems: "center", 
+          justifyContent: "space-between",
+          cursor: "pointer"
+        }}
+      >
+        <div className="account-history-title">
+          <ClockCircleOutline color="#1890ff" />
+          <span>Hesab tarixi</span>
+          {!isCollapsed && <small>{history.length} əməliyyat</small>}
+        </div>
+        {isCollapsed ? (
+          <DownOutline color={themeStyles?.mutedText || "#9ca3af"} />
+        ) : (
+          <UpOutline color={themeStyles?.mutedText || "#9ca3af"} />
+        )}
       </div>
-      {loading ? (
+
+      {!isCollapsed && (
+        <div className="account-history-content">
+          {loading ? (
         <div
           style={{
             padding: "16px",
@@ -97,6 +120,7 @@ export default function AccountHistoryCard({ accountId, themeStyles }) {
         <Space direction="vertical" block style={{ "--gap": "12px" }}>
           {history.map((item, index) => (
             <div
+              className="account-history-item"
               key={item.transaction_id || item.id || index}
               style={{
                 borderRadius: "12px",
@@ -156,6 +180,8 @@ export default function AccountHistoryCard({ accountId, themeStyles }) {
             </div>
           ))}
         </Space>
+      )}
+        </div>
       )}
     </Card>
   );

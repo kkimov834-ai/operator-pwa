@@ -101,7 +101,7 @@ export function NavBarProvider({ children }) {
       );
       root.style.setProperty(
         "--adm-color-text-secondary",
-        themeStyles.mutedText || "#6b7280"
+        themeStyles.mutedText || "#7a9bdeff"
       );
       root.style.setProperty(
         "--adm-border-color",

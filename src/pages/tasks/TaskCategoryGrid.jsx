@@ -1,4 +1,4 @@
-import { AiFillCloseCircle, AiOutlinePlus } from 'react-icons/ai';
+import { AiFillCloseCircle, AiOutlinePlus, AiOutlineArrowRight } from 'react-icons/ai';
 import { BASE_CATEGORIES } from '../../constants/TaskCategories.jsx';
 import { STATUS_COLORS } from './taskUtils.js';
 
@@ -8,11 +8,11 @@ function ViewModeTabs({ taskViewMode, onChangeMode }) {
     <div
       onClick={() => onChangeMode(mode)}
       style={{
-        flex: 1, textAlign: 'center', padding: '8px 0', borderRadius: 6,
+        flex: 1, textAlign: 'center', padding: '10px 0', borderRadius: 9,
         background: taskViewMode === mode ? 'var(--card-bg)' : 'transparent',
         color:      taskViewMode === mode ? 'var(--app-text)' : 'var(--muted-text)',
         fontWeight: taskViewMode === mode ? 600 : 400,
-        boxShadow:  taskViewMode === mode ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+        boxShadow:  taskViewMode === mode ? '0 4px 10px rgba(15,23,42,0.10)' : 'none',
         cursor: 'pointer', transition: 'all 0.2s',
       }}
     >
@@ -21,12 +21,12 @@ function ViewModeTabs({ taskViewMode, onChangeMode }) {
   );
 
   return (
-    <div style={{
+    <div className="tasks-view-tabs" style={{
       background: 'var(--card-bg)', padding: 12, borderRadius: 12,
       marginBottom: 16, border: '1px solid var(--border)',
       boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
     }}>
-      <div style={{ display: 'flex', gap: 8, background: 'var(--surface-bg)', padding: 4, borderRadius: 8 }}>
+      <div className="tasks-view-tabs-track" style={{ display: 'flex', gap: 8, background: 'var(--surface-bg)', padding: 4, borderRadius: 8 }}>
         {tab('all', 'Bütün Tapşırıqlar')}
         {tab('account', 'Mənim')}
       </div>
@@ -67,9 +67,10 @@ export default function TaskCategoryGrid({ tasks, onAddTask, onSelectCategory })
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+    <div className="task-category-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
       {/* Add Task tile */}
       <div
+        className="task-category-card task-category-card-add"
         onClick={onAddTask}
         style={{
           background: 'var(--surface-bg)', border: '1px dashed var(--tab-active-bg)',
@@ -89,6 +90,7 @@ export default function TaskCategoryGrid({ tasks, onAddTask, onSelectCategory })
         <span style={{ fontWeight: 600, color: 'var(--tab-active-bg)', fontSize: '14px' }}>
           Tapşırıq Əlavə Et
         </span>
+        <span className="task-category-card-hint">Yeni iş axını başlat</span>
       </div>
 
       {displayCats.map((cat) => {
@@ -97,9 +99,12 @@ export default function TaskCategoryGrid({ tasks, onAddTask, onSelectCategory })
         if (count === 0) return null;
         return (
           <div
+            className="task-category-card"
             key={cat.key}
             onClick={() => onSelectCategory(cat.key)}
             style={{
+              '--category-color': sc.text,
+              '--category-soft': sc.bg,
               background: 'var(--card-bg)', border: `1px solid ${sc.border}`,
               borderTop: `3px solid ${sc.text}`, borderRadius: '12px',
               padding: '16px 12px', cursor: 'pointer', display: 'flex',
@@ -107,14 +112,16 @@ export default function TaskCategoryGrid({ tasks, onAddTask, onSelectCategory })
               minHeight: '95px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {cat.icon}
-              <span style={{ fontWeight: 600, color: sc.text, fontSize: '14px' }}>
+            <div className="task-category-card-top">
+              <span className="task-category-icon">{cat.icon}</span>
+              <span className="task-category-title">
                 {cat.title}
               </span>
+              <AiOutlineArrowRight className="task-category-arrow" size={16} />
             </div>
-            <div style={{ fontSize: '20px', fontWeight: '700', color: sc.text, marginTop: 8 }}>
-              {count}
+            <div className="task-category-card-bottom">
+              <span className="task-category-label">Açıq tapşırıqlar</span>
+              <strong className="task-category-count">{count}</strong>
             </div>
           </div>
         );

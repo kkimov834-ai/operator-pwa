@@ -21,7 +21,7 @@ export default function TaskEditModal({
   const [editShowOperatorList, setEditShowOperatorList] = useState(false);
   const [showPrioritySelector, setShowPrioritySelector] = useState(false);
 
-  const { canManageTaskFields } = useRole();
+  const { canManageTaskFields, isOperator, isPartner } = useRole();
 
   useEffect(() => {
     if (editAccountSearchQuery.length >= 4) {
@@ -438,18 +438,22 @@ export default function TaskEditModal({
                 Prioritet
               </div>
               <div
-                onClick={() => setShowPrioritySelector(!showPrioritySelector)}
+                onClick={() => {
+                  if (!(isOperator || isPartner)) {
+                    setShowPrioritySelector(!showPrioritySelector);
+                  }
+                }}
                 style={{
                   width: "100%",
                   padding: "8px 12px",
                   borderRadius: 8,
                   border: "1px solid var(--border)",
-                  background: "var(--input-bg)",
-                  color: "var(--input-text)",
+                  background: (isOperator || isPartner) ? "rgba(128, 128, 128, 0.1)" : "var(--input-bg)",
+                  color: (isOperator || isPartner) ? "var(--muted-text)" : "var(--input-text)",
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
-                  cursor: "pointer"
+                  cursor: (isOperator || isPartner) ? "not-allowed" : "pointer"
                 }}
               >
                 {getPriorityData(selectedTask.priority).icon}

@@ -25,9 +25,9 @@ function StatusBadge({ task }) {
 /** Inline priority editor that pops up below the priority badge */
 function PriorityEditor({ task, onPriorityChange, isEditing, onToggle }) {
   return (
-    <div 
+    <div
       onClick={(e) => e.stopPropagation()}
-      style={{ position: 'relative', display: 'inline-flex', flexDirection: 'column', gap: 4 }}
+      style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}
     >
       <span
         onClick={(e) => { e.stopPropagation(); onToggle(); }}
@@ -37,7 +37,7 @@ function PriorityEditor({ task, onPriorityChange, isEditing, onToggle }) {
       </span>
       {isEditing && (
         <div style={{
-          position: 'absolute', top: '100%', left: 0, zIndex: 10,
+          position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', zIndex: 10,
           display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4, padding: '8px',
           background: 'var(--surface-bg)', border: '1px solid var(--border)',
           borderRadius: 12, boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
@@ -151,18 +151,20 @@ export function TaskCard({ task, onTaskClick, showCopyLink, onTaskUpdate, extraC
           </div>
 
           {/* Meta chips */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
             <StatusBadge task={task} />
             {task.operator && <Chip>Operator: {task.operator}</Chip>}
             {task.account && <Chip>Account: {task.account}</Chip>}
             {task.linear_id && <Chip>Linear ID: {task.linear_id}</Chip>}
             {(task.environment || task.env) && <Chip>Env: {(task.environment || task.env).toString().toUpperCase()}</Chip>}
-            <PriorityEditor
-              task={task}
-              isEditing={editingPriority}
-              onToggle={() => setEditingPriority((p) => !p)}
-              onPriorityChange={handlePriorityChange}
-            />
+            <div style={{ flex: '1 0 100%', display: 'flex', justifyContent: 'center', paddingTop: 2 }}>
+              <PriorityEditor
+                task={task}
+                isEditing={editingPriority}
+                onToggle={() => setEditingPriority((p) => !p)}
+                onPriorityChange={handlePriorityChange}
+              />
+            </div>
           </div>
         </div>
       }
@@ -170,7 +172,9 @@ export function TaskCard({ task, onTaskClick, showCopyLink, onTaskUpdate, extraC
         background: 'var(--card-bg)',
         border: `1px solid ${sc.border}`,
         borderLeft: `4px solid ${sc.text}`,
-        borderRadius: 8,
+        borderRadius: 16,
+        boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
+        transition: 'transform 160ms ease, box-shadow 160ms ease',
       }}
     >
       {task.description && (
@@ -200,9 +204,9 @@ export function TaskList({ tasks, onTaskClick, onTaskUpdate, showCopyLink, empty
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {tasks.map((task) => (
+      {tasks.map((task, index) => (
         <TaskCard
-          key={getTaskId(task) || Math.random()}
+          key={getTaskId(task) || task.linear_id || `${task.title || 'task'}-${index}`}
           task={task}
           onTaskClick={onTaskClick}
           showCopyLink={showCopyLink}
@@ -284,9 +288,9 @@ export function GlobalSearchResults({ tasks, onTaskClick }) {
         {tasks.length} nəticə tapıldı
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {tasks.map((task) => (
+        {tasks.map((task, index) => (
           <SearchResultCard
-            key={getTaskId(task) || Math.random()}
+            key={getTaskId(task) || task.linear_id || `${task.title || 'result'}-${index}`}
             task={task}
             onClick={onTaskClick}
           />
